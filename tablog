@@ -1,0 +1,18 @@
+#!/usr/bin/bash
+######################################
+script_realpath=$(realpath "$0")
+#script_dir=$(dirname "$script_realpath")
+#tablog_dir=$(dirname "$script_dir")
+tablog_dir=/home/scratch.avice_vlsi/tablog/
+export PYTHONPATH=/home/utils/Python/builds/3.11.9-20250715/bin/python3:${tablog_dir}/
+[ -d "/usr/lib64" ] && gtk_dir=/usr/lib64
+if [ -n "$LD_LIBRARY_PATH" ]; then
+    export ORIGIN_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+fi
+export LD_LIBRARY_PATH=/usr/lib:/usr/lib64${ORIGIN_LD_LIBRARY_PATH:+:$ORIGIN_LD_LIBRARY_PATH}
+export QTWEBENGINE_CHROMIUM_FLAGS="--enable-logging --log-level=3"
+export XDG_RUNTIME_DIR=/tmp/runtime-${USER}
+export QT_XCB_NO_XI2=1
+export QT_XCB_NO_XRANDR=1
+export QT_LOGGING_RULES="*=false"
+exec /home/utils/Python/builds/3.11.9-20250715/bin/python3 "${tablog_dir}"/LogViewTab.py "$@"
