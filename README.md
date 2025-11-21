@@ -62,6 +62,32 @@ Enter text in the search box to highlight and filter matching lines.
 Paths starting with `/home` and ending with:
 - `.log`, `.tcl`, `.yaml`, `.cfg`, `.txt`, `.py`
 
+## Troubleshooting
+
+### X Server Connection Issues
+
+If you get an error about Qt platform plugin initialization:
+
+**Solution 1: Use SSH X11 Forwarding (Recommended)**
+```bash
+ssh -X user@host
+# or for trusted forwarding
+ssh -Y user@host
+```
+
+**Solution 2: Set DISPLAY to Local X Server**
+```csh
+# For csh/tcsh
+setenv DISPLAY :0
+```
+
+**Solution 3: Check X Server Accessibility**
+```bash
+xset q  # Test X server connection
+```
+
+The Python launcher (`tablog.py`) provides detailed diagnostics when connection issues occur.
+
 ## Development
 
 ### Project Structure
@@ -81,7 +107,8 @@ tablog/
 │   └── TabBar.py      # Custom colored tab bar
 ├── icons/             # Icon resources
 ├── example.log        # Sample log file
-└── tablog             # Launcher script
+├── tablog             # Python launcher with diagnostics
+└── tablog.bash.backup # Original bash launcher (backup)
 ```
 
 ## License

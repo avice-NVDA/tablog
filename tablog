@@ -1,18 +1,224 @@
-#!/usr/bin/bash
-######################################
-script_realpath=$(realpath "$0")
-#script_dir=$(dirname "$script_realpath")
-#tablog_dir=$(dirname "$script_dir")
-tablog_dir=/home/scratch.avice_vlsi/tablog/
-export PYTHONPATH=/home/utils/Python/builds/3.11.9-20250715/bin/python3:${tablog_dir}/
-[ -d "/usr/lib64" ] && gtk_dir=/usr/lib64
-if [ -n "$LD_LIBRARY_PATH" ]; then
-    export ORIGIN_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
-fi
-export LD_LIBRARY_PATH=/usr/lib:/usr/lib64${ORIGIN_LD_LIBRARY_PATH:+:$ORIGIN_LD_LIBRARY_PATH}
-export QTWEBENGINE_CHROMIUM_FLAGS="--enable-logging --log-level=3"
-export XDG_RUNTIME_DIR=/tmp/runtime-${USER}
-export QT_XCB_NO_XI2=1
-export QT_XCB_NO_XRANDR=1
-export QT_LOGGING_RULES="*=false"
-exec /home/utils/Python/builds/3.11.9-20250715/bin/python3 "${tablog_dir}"/LogViewTab.py "$@"
+#!/home/utils/Python/builds/3.11.9-20250715/bin/python3
+"""
+TabLog Launcher Script
+======================
+Robust Python launcher for the TabLog log viewer application.
+
+Features:
+- Environment setup and validation
+- X server connectivity checks
+- Helpful diagnostics for common issues
+- Better error handling than shell scripts
+"""
+
+import os
+import sys
+import socket
+import subprocess
+from pathlib import Path
+
+
+class TabLogLauncher:
+    """Launcher for TabLog application with environment setup and validation."""
+    
+    def __init__(self):
+        self.script_dir = Path(__file__).parent.resolve()
+        self.tablog_dir = self.script_dir
+        self.python_exe = "/home/utils/Python/builds/3.11.9-20250715/bin/python3"
+        self.qt_plugin_path = "/home/utils/qt-5.15.16/plugins"
+        
+    def setup_environment(self):
+        """Set up required environment variables for Qt and TabLog."""
+        # Set Python path
+        os.environ['PYTHONPATH'] = f"{self.python_exe}:{self.tablog_dir}"
+        
+        # Set Qt plugin path - CRITICAL for Qt to find platform plugins
+        os.environ['QT_PLUGIN_PATH'] = self.qt_plugin_path
+        
+        # Set XDG runtime directory
+        user = os.environ.get('USER', 'user')
+        os.environ['XDG_RUNTIME_DIR'] = f'/tmp/runtime-{user}'
+        
+        # Optional: Disable Qt debug output for cleaner experience
+        # Comment out to enable Qt debugging
+        os.environ.setdefault('QT_LOGGING_RULES', '*=false')
+        
+    def check_display(self):
+        """
+        Check if DISPLAY is set and X server is accessible.
+        Returns (success: bool, error_message: str)
+        """
+        display = os.environ.get('DISPLAY', '')
+        
+        if not display:
+            return False, "DISPLAY environment variable is not set"
+        
+        # Test X server accessibility using xset
+        try:
+            result = subprocess.run(
+                ['xset', 'q'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=2
+            )
+            if result.returncode == 0:
+                return True, ""
+            else:
+                return False, f"Cannot connect to X server at DISPLAY={display}"
+        except subprocess.TimeoutExpired:
+            return False, f"X server connection timeout at DISPLAY={display}"
+        except FileNotFoundError:
+            # xset not found, try a basic connection test
+            return self._test_x_socket(display)
+        except Exception as e:
+            return False, f"Error testing X server: {e}"
+    
+    def _test_x_socket(self, display):
+        """Test X server connection by attempting socket connection."""
+        try:
+            # Parse DISPLAY format: [host]:display[.screen]
+            if ':' not in display:
+                return False, f"Invalid DISPLAY format: {display}"
+            
+            host_part, display_part = display.rsplit(':', 1)
+            display_num = display_part.split('.')[0]
+            
+            # Empty host means localhost
+            host = host_part if host_part else 'localhost'
+            
+            # X11 typically uses port 6000 + display_number
+            try:
+                port = 6000 + int(display_num)
+            except ValueError:
+                return False, f"Invalid display number in DISPLAY={display}"
+            
+            # Try to connect
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            result = sock.connect_ex((host, port))
+            sock.close()
+            
+            if result == 0:
+                return True, ""
+            else:
+                return False, f"Cannot connect to X server at {host}:{port}"
+                
+        except Exception as e:
+            return False, f"Error testing X server connection: {e}"
+    
+    def print_diagnostics(self, error_message):
+        """Print helpful diagnostic information when X server connection fails."""
+        display = os.environ.get('DISPLAY', 'NOT SET')
+        user = os.environ.get('USER', 'unknown')
+        
+        try:
+            hostname = socket.gethostname()
+            fqdn = socket.getfqdn()
+        except:
+            hostname = "unknown"
+            fqdn = "unknown"
+        
+        ssh_client = os.environ.get('SSH_CLIENT', '')
+        local_ip = ssh_client.split()[0] if ssh_client else None
+        
+        print("=" * 60)
+        print("ERROR: Cannot start TabLog")
+        print("=" * 60)
+        print()
+        print(f"Reason: {error_message}")
+        print()
+        print(f"DISPLAY:      {display}")
+        print(f"Current host: {fqdn}")
+        print(f"Current user: {user}")
+        print()
+        
+        # Check if display hostname is resolvable
+        if ':' in display:
+            display_host = display.split(':')[0]
+            if display_host and display_host not in ['localhost', '127.0.0.1']:
+                try:
+                    socket.gethostbyname(display_host)
+                except socket.gaierror:
+                    print(f"⚠ WARNING: Display hostname '{display_host}' cannot be resolved!")
+                    print("   This hostname may no longer exist or is unreachable.")
+                    print()
+        
+        print("RECOMMENDED SOLUTION:")
+        print()
+        
+        if ssh_client:
+            print("  You're connected via SSH. Reconnect with X11 forwarding:")
+            print()
+            print(f"    ssh -X {user}@{fqdn}")
+            print("    or")
+            print(f"    ssh -Y {user}@{fqdn}")
+            print()
+            print("  After reconnecting, DISPLAY will be set automatically")
+            print("  (usually to localhost:10.0 or similar)")
+        else:
+            print("  If using SSH, reconnect with X11 forwarding:")
+            print()
+            print(f"    ssh -X {user}@<server>")
+            print(f"    ssh -Y {user}@<server>")
+        
+        print()
+        print("ALTERNATIVE SOLUTIONS:")
+        print()
+        print("  1. Ensure X server is running on your local machine")
+        print()
+        print("  2. Set DISPLAY to your local machine (csh syntax):")
+        print("     setenv DISPLAY :0")
+        print("     or")
+        print("     setenv DISPLAY <your_local_ip>:0.0")
+        
+        if local_ip:
+            print(f"     (Your local IP appears to be: {local_ip})")
+            print()
+            print("     Then on your local machine, allow connections:")
+            print(f"       xhost +{hostname}")
+        
+        print()
+        print("  3. Test X server connection with:")
+        print("     xset q")
+        print()
+        print("=" * 60)
+    
+    def launch(self, args):
+        """Launch the TabLog application."""
+        # Setup environment
+        self.setup_environment()
+        
+        # Check display
+        success, error_msg = self.check_display()
+        if not success:
+            self.print_diagnostics(error_msg)
+            return 1
+        
+        # Launch LogViewTab.py
+        logviewtab_script = self.tablog_dir / "LogViewTab.py"
+        
+        if not logviewtab_script.exists():
+            print(f"ERROR: Cannot find LogViewTab.py at {logviewtab_script}")
+            return 1
+        
+        # Execute LogViewTab with arguments
+        try:
+            os.execv(self.python_exe, [self.python_exe, str(logviewtab_script)] + args)
+        except Exception as e:
+            print(f"ERROR: Failed to launch TabLog: {e}")
+            return 1
+
+
+def main():
+    """Main entry point."""
+    # Get command line arguments (skip the script name)
+    args = sys.argv[1:]
+    
+    # Create and run launcher
+    launcher = TabLogLauncher()
+    sys.exit(launcher.launch(args))
+
+
+if __name__ == '__main__':
+    main()
+

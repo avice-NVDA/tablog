@@ -1,0 +1,87 @@
+#!/usr/bin/bash
+######################################
+script_realpath=$(realpath "$0")
+#script_dir=$(dirname "$script_realpath")
+#tablog_dir=$(dirname "$script_dir")
+tablog_dir=/home/scratch.avice_vlsi/tablog/
+export PYTHONPATH=/home/utils/Python/builds/3.11.9-20250715/bin/python3:${tablog_dir}/
+
+# Ensure DISPLAY is exported (it should be inherited from parent shell)
+export DISPLAY
+
+# Set Qt plugin path explicitly - THIS IS CRITICAL
+export QT_PLUGIN_PATH=/home/utils/qt-5.15.16/plugins
+
+# Set XDG runtime directory
+export XDG_RUNTIME_DIR=/tmp/runtime-${USER}
+
+# Optional: Disable Qt debug output (comment out for debugging)
+# export QT_LOGGING_RULES="*=false"
+
+# Note: We intentionally do NOT override LD_LIBRARY_PATH here as it can break Qt
+# The system and Python installation should have the correct library paths
+
+# Check if DISPLAY is set, if not or X server not accessible, show helpful message
+if [ -z "$DISPLAY" ]; then
+    echo "ERROR: DISPLAY environment variable is not set."
+    echo "Please set DISPLAY variable (e.g., setenv DISPLAY :0 in csh) or use SSH X forwarding."
+    exit 1
+fi
+
+# Extract hostname from DISPLAY (format: hostname:display.screen or :display.screen)
+DISPLAY_HOST=$(echo "$DISPLAY" | sed 's/:.*$//')
+CURRENT_HOST=$(hostname -f)
+
+# Test X server accessibility
+if ! xset q &> /dev/null; then
+    echo "=========================================="
+    echo "ERROR: Cannot connect to X server"
+    echo "=========================================="
+    echo ""
+    echo "DISPLAY is set to: $DISPLAY"
+    echo "Current host: $CURRENT_HOST"
+    echo "Current user: $USER"
+    echo ""
+    
+    # Check if DISPLAY hostname can be resolved
+    if [ -n "$DISPLAY_HOST" ] && [ "$DISPLAY_HOST" != "localhost" ] && [ "$DISPLAY_HOST" != "127.0.0.1" ]; then
+        if ! host "$DISPLAY_HOST" &> /dev/null && ! ping -c 1 "$DISPLAY_HOST" &> /dev/null 2>&1; then
+            echo "⚠ WARNING: The X server hostname '$DISPLAY_HOST' cannot be resolved!"
+            echo "   This hostname may no longer exist or is unreachable."
+            echo ""
+        fi
+    fi
+    
+    echo "RECOMMENDED SOLUTION (for SSH sessions):"
+    echo "  Reconnect with X11 forwarding enabled:"
+    echo ""
+    if [ -n "$SSH_CLIENT" ]; then
+        echo "  From your local machine, run:"
+        echo "    ssh -X $USER@$CURRENT_HOST"
+        echo "    or"
+        echo "    ssh -Y $USER@$CURRENT_HOST"
+    else
+        echo "    ssh -X $USER@<your_server>"
+        echo "    ssh -Y $USER@<your_server>"
+    fi
+    echo ""
+    echo "ALTERNATIVE SOLUTIONS:"
+    echo ""
+    echo "  1. If running locally, ensure X server is running"
+    echo ""
+    echo "  2. Set DISPLAY to your local machine (csh syntax):"
+    echo "     setenv DISPLAY <your_local_ip>:0.0"
+    if [ -n "$SSH_CLIENT" ]; then
+        LOCAL_IP=$(echo "$SSH_CLIENT" | awk '{print $1}')
+        echo "     (Your local IP appears to be: $LOCAL_IP)"
+        echo "     Then on your local machine, allow connections:"
+        echo "       xhost +$(hostname)"
+    fi
+    echo ""
+    echo "  3. Test X server connection with: xset q"
+    echo ""
+    echo "=========================================="
+    exit 1
+fi
+
+exec /home/utils/Python/builds/3.11.9-20250715/bin/python3 "${tablog_dir}"/LogViewTab.py "$@"
