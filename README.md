@@ -7,6 +7,8 @@ A powerful PyQt5-based log viewing application with advanced filtering, search, 
 - **Multi-tab Interface**: Open multiple log files in separate tabs
 - **Smart Log Classification**: Automatically detects DEBUG, INFO, WARNING, ERROR levels
 - **Advanced Filtering**: Filter by log level and search text with live highlighting
+- **Level Count Badges**: See how many lines of each level exist (e.g., "Error (12)")
+- **Comprehensive Help System**: Built-in help with keyboard shortcuts and feature explanations
 - **Clickable File Links**: File paths in logs become clickable links
 - **Keyboard Shortcuts**: Full keyboard navigation support
 - **Multiple Formats**: Supports plain text, gzipped, and ANSI-colored logs
@@ -35,6 +37,7 @@ chmod +x tablog
 - **Drag and drop**: (if supported by your window manager)
 
 ### Keyboard Shortcuts
+- **F1 / Ctrl+H**: Show help dialog
 - **Ctrl+O**: Open file
 - **Ctrl+W**: Close current tab
 - **Ctrl+R / F5**: Reload current file
@@ -44,6 +47,8 @@ chmod +x tablog
 - **Arrow keys**: Navigate log
 - **Page Up/Down**: Page through log
 - **Ctrl+Home/End**: Jump to top/bottom
+
+For complete keyboard shortcuts, press **F1** in the application.
 
 ### Log Level Filtering
 Click the level buttons (Text, Debug, Info, Warning, Error) to filter by log severity.
@@ -117,4 +122,12 @@ tablog/
 
 ## Version
 
-Current version: 1.0.0
+Current version: 1.1.0
+
+### What's New in v1.1
+- ✨ Level count badges on filter buttons (e.g., "Error (12)")
+- ✨ Comprehensive help system (press F1)
+- ✨ Help button in toolbar
+- 📝 Detailed documentation for all features
+
+See [FEATURES_v1.1.md](FEATURES_v1.1.md) for complete details.

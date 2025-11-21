@@ -52,11 +52,14 @@ class LogViewer(QWidget):
         self.reloadButton = QPushButton()
         self.cleanLevels = QPushButton("Clear")
         self.levelButtons: dict[LogLevel, QPushButton] = {}
+        self.levelCounts: dict[LogLevel, int] = {level: 0 for level in LogLevel}
+        self.filteredCounts: dict[LogLevel, int] = {level: 0 for level in LogLevel}
         self.logTable = QTableView(self)
         self.logModel = LogTableModel(self)
         self.filterTable = QTableView(self)
         self.filterModel = FilterTableModel(self, self.logModel)
         self.searchEntry = QLineEdit()
+        self.helpButton = QPushButton("❓ Help")
         self.init_ui()
         self.load_file(self.logFile)
 
@@ -183,6 +186,10 @@ class LogViewer(QWidget):
 
         self.init_search_actions()
         toolbar_layout.addWidget(self.searchEntry)
+        toolbar_layout.addWidget(QLabel(" "))
+        self.helpButton.setToolTip("Show help and keyboard shortcuts")
+        self.helpButton.clicked.connect(self.show_help_dialog)
+        toolbar_layout.addWidget(self.helpButton)
         bottom_section.layout().addLayout(toolbar_layout)
 
         self.init_shortcuts()
@@ -328,6 +335,32 @@ class LogViewer(QWidget):
         self.filterTable.scrollTo(self.filterModel.index(row_next, 0), QTableView.PositionAtCenter)
         self.filterTable.horizontalScrollBar().setValue(hor_scroll_val)
 
+    def count_levels(self) -> None:
+        """Count the number of lines for each log level."""
+        self.levelCounts = {level: 0 for level in LogLevel}
+        for level, _ in self.logModel.logData:
+            self.levelCounts[level] = self.levelCounts.get(level, 0) + 1
+    
+    def count_filtered_levels(self) -> None:
+        """Count the number of filtered lines for each log level."""
+        self.filteredCounts = {level: 0 for level in LogLevel}
+        for _, level, _ in self.filterModel.logData:
+            self.filteredCounts[level] = self.filteredCounts.get(level, 0) + 1
+    
+    def update_level_button_text(self) -> None:
+        """Update filter button text with counts."""
+        search_text = self.searchEntry.text().lower()
+        has_filter = bool(search_text) or any(btn.isChecked() for btn in self.levelButtons.values())
+        
+        for level, button in self.levelButtons.items():
+            total_count = self.levelCounts.get(level, 0)
+            
+            if has_filter:
+                filtered_count = self.filteredCounts.get(level, 0)
+                button.setText(f"{level.name.capitalize()} ({filtered_count}/{total_count})")
+            else:
+                button.setText(f"{level.name.capitalize()} ({total_count})")
+
     def load_file(self, log_file: str) -> None:
         try:
             QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -369,6 +402,7 @@ class LogViewer(QWidget):
                 self.cleanLevels.setEnabled(False)
             self.logTable.resizeColumnToContents(0)
 
+            self.count_levels()
             self.search_logs()
             for table in [self.logTable, self.filterTable]:
                 table.scrollTo(self.logModel.index(0, 0), QTableView.PositionAtTop)
@@ -398,11 +432,369 @@ class LogViewer(QWidget):
         finally:
             self.filterModel.endResetModel()
             QApplication.restoreOverrideCursor()
+        
+        # Update counts after filtering
+        self.count_filtered_levels()
+        self.update_level_button_text()
+        
         row_count = self.filterModel.rowCount()
         if row_count > 0:
             QApplication.processEvents(flags=QEventLoop.ExcludeUserInputEvents)
             self.filterTable.scrollTo(self.filterModel.index(row_count - 1, 0), QTableView.PositionAtTop)
             self.filterTable.selectRow(row_count - 1)
+
+    def show_help_dialog(self):
+        """Show the help dialog with tabs."""
+        from PyQt5.QtWidgets import QDialog, QTabWidget, QTextBrowser, QVBoxLayout, QPushButton
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("TabLog Help")
+        dialog.setModal(True)
+        dialog.resize(700, 500)
+        
+        layout = QVBoxLayout()
+        dialog.setLayout(layout)
+        
+        # Create tab widget
+        tabs = QTabWidget()
+        layout.addWidget(tabs)
+        
+        # Filters Tab
+        filters_tab = QTextBrowser()
+        filters_tab.setOpenExternalLinks(False)
+        filters_tab.setHtml(self._get_filters_help_html())
+        tabs.addTab(filters_tab, "Filters")
+        
+        # Search Tab
+        search_tab = QTextBrowser()
+        search_tab.setHtml(self._get_search_help_html())
+        tabs.addTab(search_tab, "Search")
+        
+        # Shortcuts Tab
+        shortcuts_tab = QTextBrowser()
+        shortcuts_tab.setHtml(self._get_shortcuts_help_html())
+        tabs.addTab(shortcuts_tab, "Shortcuts")
+        
+        # About Tab
+        about_tab = QTextBrowser()
+        about_tab.setOpenExternalLinks(True)
+        about_tab.setHtml(self._get_about_help_html())
+        tabs.addTab(about_tab, "About")
+        
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        layout.addWidget(close_btn)
+        
+        dialog.exec_()
+    
+    def _get_filters_help_html(self) -> str:
+        """Generate HTML for filters help tab."""
+        return """
+        <html>
+        <head><style>
+            body { font-family: Arial, sans-serif; padding: 15px; }
+            h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+            h3 { color: #34495e; margin-top: 20px; }
+            .level { padding: 10px; margin: 10px 0; border-left: 4px solid; }
+            .text { background: #f2f2f2; border-color: #95a5a6; }
+            .debug { background: #f8f8f8; border-color: #808080; color: #808080; }
+            .info { background: #ebf5fb; border-color: #3498db; color: #232B99; }
+            .warning { background: #fffacd; border-color: #f39c12; }
+            .error { background: #fadbd8; border-color: #e74c3c; }
+            code { background: #ecf0f1; padding: 2px 6px; border-radius: 3px; }
+            .tip { background: #d5f4e6; padding: 10px; margin: 10px 0; border-left: 4px solid #27ae60; }
+        </style></head>
+        <body>
+            <h2>Filter Buttons</h2>
+            <p>TabLog automatically classifies log lines into different levels. Use the filter buttons to show only specific log levels.</p>
+            
+            <div class="level text">
+                <h3>🔵 Text (Level 1)</h3>
+                <p><b>Purpose:</b> Regular text lines without specific log level markers</p>
+                <p><b>Patterns matched:</b> Any line that doesn't match other levels</p>
+                <p><b>Example:</b> <code>Processing started...</code></p>
+            </div>
+            
+            <div class="level debug">
+                <h3>🔍 Debug (Level 2)</h3>
+                <p><b>Purpose:</b> Detailed diagnostic information for debugging</p>
+                <p><b>Patterns matched:</b> Lines starting with or containing:</p>
+                <ul>
+                    <li><code>DEBUG</code>, <code>D:</code>, <code>Debug:</code></li>
+                    <li><code>-D-</code>, <code>-Debug-</code></li>
+                    <li><code>[DEBUG]</code>, <code>DEBUG]</code></li>
+                </ul>
+                <p><b>Example:</b> <code>DEBUG Initializing module</code></p>
+            </div>
+            
+            <div class="level info">
+                <h3>ℹ️ Info (Level 3)</h3>
+                <p><b>Purpose:</b> Informational messages about normal program flow</p>
+                <p><b>Patterns matched:</b> Lines starting with or containing:</p>
+                <ul>
+                    <li><code>INFO</code>, <code>I:</code>, <code>Information:</code></li>
+                    <li><code>-I-</code>, <code>-Info-</code></li>
+                    <li><code>[INFO]</code>, <code>INFO]</code></li>
+                </ul>
+                <p><b>Example:</b> <code>INFO Process completed successfully</code></p>
+            </div>
+            
+            <div class="level warning">
+                <h3>⚠️ Warning (Level 4)</h3>
+                <p><b>Purpose:</b> Potential issues that aren't critical but need attention</p>
+                <p><b>Patterns matched:</b> Lines starting with or containing:</p>
+                <ul>
+                    <li><code>WARNING</code>, <code>W:</code>, <code>Warning:</code></li>
+                    <li><code>-W-</code>, <code>-Warning-</code></li>
+                    <li><code>[WARNING]</code>, <code>[WARN]</code>, <code>WARN]</code></li>
+                </ul>
+                <p><b>Example:</b> <code>WARNING Slow network detected</code></p>
+            </div>
+            
+            <div class="level error">
+                <h3>❌ Error (Level 5)</h3>
+                <p><b>Purpose:</b> Serious errors, fatal issues, or critical problems</p>
+                <p><b>Patterns matched:</b> Lines starting with or containing:</p>
+                <ul>
+                    <li><code>ERROR</code>, <code>E:</code>, <code>Error:</code></li>
+                    <li><code>FATAL</code>, <code>F:</code>, <code>Fatal:</code></li>
+                    <li><code>CRITICAL</code>, <code>C:</code>, <code>Critical:</code></li>
+                    <li><code>Segmentation fault encountered</code></li>
+                    <li><code>[ERROR]</code>, <code>[FATAL]</code>, <code>[CRITICAL]</code></li>
+                </ul>
+                <p><b>Example:</b> <code>ERROR Connection failed</code></p>
+            </div>
+            
+            <h2>Using Filters</h2>
+            <div class="tip">
+                <p><b>💡 Tip:</b> Click multiple filter buttons to combine them (OR logic)</p>
+                <p><b>Example:</b> Click Warning + Error to see all warnings and errors</p>
+            </div>
+            
+            <h3>Filter Counts</h3>
+            <p>Each button shows the count of matching lines:</p>
+            <ul>
+                <li><b>Normal view:</b> <code>Error (12)</code> = 12 error lines total</li>
+                <li><b>When filtering:</b> <code>Error (5/12)</code> = 5 matching your search, 12 total</li>
+            </ul>
+            
+            <h3>Clear Button</h3>
+            <p>Click the <b>Clear</b> button (🧹) to uncheck all filters and show all lines.</p>
+        </body>
+        </html>
+        """
+    
+    def _get_search_help_html(self) -> str:
+        """Generate HTML for search help tab."""
+        return """
+        <html>
+        <head><style>
+            body { font-family: Arial, sans-serif; padding: 15px; }
+            h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+            h3 { color: #34495e; margin-top: 20px; }
+            code { background: #ecf0f1; padding: 2px 6px; border-radius: 3px; }
+            .highlight { background: #FF9632; font-weight: bold; padding: 2px 4px; }
+            .tip { background: #d5f4e6; padding: 10px; margin: 10px 0; border-left: 4px solid #27ae60; }
+            ul { line-height: 1.8; }
+        </style></head>
+        <body>
+            <h2>Search Features</h2>
+            
+            <h3>Basic Search</h3>
+            <p>Type text in the search box and press <code>Enter</code> or click the search icon (🔍).</p>
+            <ul>
+                <li>Search is <b>case-insensitive</b></li>
+                <li>Matches are <span class="highlight">highlighted in orange</span></li>
+                <li>Filtered results appear in the bottom pane</li>
+            </ul>
+            
+            <h3>Search Navigation</h3>
+            <table border="1" cellpadding="8" style="border-collapse: collapse; margin: 10px 0;">
+                <tr style="background: #3498db; color: white;">
+                    <th>Button/Key</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td><code>🔍</code> or <code>Enter</code></td>
+                    <td>Execute search</td>
+                </tr>
+                <tr style="background: #f8f9fa;">
+                    <td><code>⬆</code> or <code>Ctrl+Up</code></td>
+                    <td>Go to previous match</td>
+                </tr>
+                <tr>
+                    <td><code>⬇</code> or <code>Ctrl+Down</code></td>
+                    <td>Go to next match</td>
+                </tr>
+                <tr style="background: #f8f9fa;">
+                    <td><code>✖</code> (Clear icon)</td>
+                    <td>Clear search text</td>
+                </tr>
+                <tr>
+                    <td><code>Ctrl+F</code> or <code>F3</code></td>
+                    <td>Focus search box</td>
+                </tr>
+                <tr style="background: #f8f9fa;">
+                    <td><code>Esc</code></td>
+                    <td>Clear search and unfocus</td>
+                </tr>
+            </table>
+            
+            <h3>Combining Search with Filters</h3>
+            <p>You can combine text search with log level filters:</p>
+            <ol>
+                <li>Click one or more filter buttons (e.g., <b>Warning</b> + <b>Error</b>)</li>
+                <li>Type search text (e.g., "timeout")</li>
+                <li>See only warnings/errors containing "timeout"</li>
+            </ol>
+            
+            <div class="tip">
+                <p><b>💡 Pro Tip:</b> Use search to find specific patterns, then use filter buttons to focus on important log levels!</p>
+            </div>
+            
+            <h3>Search Results</h3>
+            <ul>
+                <li>Results show in the <b>bottom pane</b></li>
+                <li>Click a result to see it in context in the <b>top pane</b></li>
+                <li>The top pane auto-scrolls and highlights the selected line</li>
+            </ul>
+        </body>
+        </html>
+        """
+    
+    def _get_shortcuts_help_html(self) -> str:
+        """Generate HTML for keyboard shortcuts help tab."""
+        return """
+        <html>
+        <head><style>
+            body { font-family: Arial, sans-serif; padding: 15px; }
+            h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+            h3 { color: #34495e; margin-top: 20px; }
+            table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+            th { background: #3498db; color: white; padding: 10px; text-align: left; }
+            td { padding: 8px; border-bottom: 1px solid #ddd; }
+            tr:nth-child(even) { background: #f8f9fa; }
+            .key { background: #ecf0f1; padding: 3px 8px; border-radius: 3px; font-family: monospace; white-space: nowrap; }
+        </style></head>
+        <body>
+            <h2>Keyboard Shortcuts</h2>
+            
+            <h3>📁 File Operations</h3>
+            <table>
+                <tr><th>Shortcut</th><th>Action</th></tr>
+                <tr><td><span class="key">Ctrl+O</span></td><td>Open file</td></tr>
+                <tr><td><span class="key">Ctrl+W</span></td><td>Close current tab</td></tr>
+                <tr><td><span class="key">Ctrl+R</span> or <span class="key">F5</span></td><td>Reload current file</td></tr>
+                <tr><td><span class="key">Ctrl+Q</span></td><td>Quit application</td></tr>
+            </table>
+            
+            <h3>🔍 Search</h3>
+            <table>
+                <tr><th>Shortcut</th><th>Action</th></tr>
+                <tr><td><span class="key">Ctrl+F</span> or <span class="key">F3</span></td><td>Focus search box</td></tr>
+                <tr><td><span class="key">Enter</span></td><td>Execute search</td></tr>
+                <tr><td><span class="key">Ctrl+Up</span></td><td>Previous search result</td></tr>
+                <tr><td><span class="key">Ctrl+Down</span></td><td>Next search result</td></tr>
+                <tr><td><span class="key">Esc</span></td><td>Clear search and unfocus</td></tr>
+            </table>
+            
+            <h3>🧭 Navigation</h3>
+            <table>
+                <tr><th>Shortcut</th><th>Action</th></tr>
+                <tr><td><span class="key">↑</span> / <span class="key">↓</span></td><td>Scroll up/down one line</td></tr>
+                <tr><td><span class="key">←</span> / <span class="key">→</span></td><td>Scroll left/right (fast)</td></tr>
+                <tr><td><span class="key">Ctrl+←</span> / <span class="key">Ctrl+→</span></td><td>Scroll left/right (slow)</td></tr>
+                <tr><td><span class="key">Page Up</span> / <span class="key">Page Down</span></td><td>Page up/down in main view</td></tr>
+                <tr><td><span class="key">Ctrl+Page Up</span> / <span class="key">Ctrl+Page Down</span></td><td>Page up/down in filter view</td></tr>
+                <tr><td><span class="key">Ctrl+Home</span></td><td>Jump to top of log</td></tr>
+                <tr><td><span class="key">Ctrl+End</span></td><td>Jump to bottom of log</td></tr>
+                <tr><td><span class="key">Ctrl+Shift+Home</span></td><td>Jump to top of filtered view</td></tr>
+                <tr><td><span class="key">Ctrl+Shift+End</span></td><td>Jump to bottom of filtered view</td></tr>
+            </table>
+            
+            <h3>📋 Clipboard</h3>
+            <table>
+                <tr><th>Shortcut</th><th>Action</th></tr>
+                <tr><td><span class="key">Ctrl+C</span></td><td>Copy selected rows</td></tr>
+                <tr><td><span class="key">Ctrl+A</span></td><td>Select all (if less than 1000 rows)</td></tr>
+                <tr><td><span class="key">Right-click</span></td><td>Context menu with Copy option</td></tr>
+            </table>
+            
+            <h3>💡 Tips</h3>
+            <ul style="line-height: 1.8;">
+                <li>Double-click a log line to view it in a popup</li>
+                <li>Click file paths in logs to open them in a new tab</li>
+                <li>Use <span class="key">Shift+Click</span> to select multiple rows</li>
+                <li>Right-click selected rows and choose "Copy" to copy to clipboard</li>
+            </ul>
+        </body>
+        </html>
+        """
+    
+    def _get_about_help_html(self) -> str:
+        """Generate HTML for about help tab."""
+        return """
+        <html>
+        <head><style>
+            body { font-family: Arial, sans-serif; padding: 15px; }
+            h1 { color: #2c3e50; text-align: center; }
+            h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 30px; }
+            .logo { text-align: center; font-size: 48px; margin: 20px 0; }
+            .version { text-align: center; color: #7f8c8d; font-size: 14px; }
+            ul { line-height: 1.8; }
+            .feature { margin: 10px 0; }
+            a { color: #3498db; text-decoration: none; }
+            a:hover { text-decoration: underline; }
+        </style></head>
+        <body>
+            <div class="logo">📋</div>
+            <h1>TabLog</h1>
+            <p class="version">Version 1.1.0</p>
+            <p style="text-align: center;">A powerful PyQt5-based log viewing application</p>
+            
+            <h2>Features</h2>
+            <ul>
+                <li class="feature">✅ <b>Multi-tab Interface</b> - Open multiple log files in separate tabs</li>
+                <li class="feature">✅ <b>Smart Log Classification</b> - Automatically detects DEBUG, INFO, WARNING, ERROR levels</li>
+                <li class="feature">✅ <b>Advanced Filtering</b> - Filter by log level and search text with live highlighting</li>
+                <li class="feature">✅ <b>Level Counts</b> - See how many lines of each level exist</li>
+                <li class="feature">✅ <b>Clickable File Links</b> - File paths in logs become clickable links</li>
+                <li class="feature">✅ <b>Keyboard Shortcuts</b> - Full keyboard navigation support</li>
+                <li class="feature">✅ <b>Multiple Formats</b> - Supports plain text, gzipped, and ANSI-colored logs</li>
+                <li class="feature">✅ <b>Dual-Pane View</b> - See full log and filtered results simultaneously</li>
+                <li class="feature">✅ <b>Copy Support</b> - Copy selected lines to clipboard</li>
+            </ul>
+            
+            <h2>File Support</h2>
+            <ul>
+                <li>Plain text (.log, .txt)</li>
+                <li>Gzipped logs (.log.gz)</li>
+                <li>ANSI colored logs</li>
+                <li>Clickable file paths (.log, .tcl, .yaml, .cfg, .txt, .py)</li>
+            </ul>
+            
+            <h2>Links</h2>
+            <ul>
+                <li>📦 GitHub: <a href="https://github.com/avice-NVDA/tablog">https://github.com/avice-NVDA/tablog</a></li>
+                <li>📄 Documentation: See README.md and QUICK_START.md</li>
+            </ul>
+            
+            <h2>Requirements</h2>
+            <ul>
+                <li>Python 3.11+</li>
+                <li>PyQt5</li>
+                <li>ansi2html (for ANSI color support)</li>
+            </ul>
+            
+            <h2>Credits</h2>
+            <p>Developed by avice @ NVIDIA</p>
+            <p style="margin-top: 30px; text-align: center; color: #7f8c8d; font-size: 12px;">
+                © 2025 TabLog. All rights reserved.
+            </p>
+        </body>
+        </html>
+        """
 
 
 if __name__ == '__main__':

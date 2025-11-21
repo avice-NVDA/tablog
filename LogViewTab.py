@@ -102,6 +102,19 @@ if __name__ == '__main__':
     exit_action.setShortcut('Ctrl+Q')
     exit_action.triggered.connect(main_window.close)
     menu.addAction(exit_action)
+    
+    # Help menu
+    help_menu = main_window.menuBar().addMenu("Help")
+    help_action = QAction('Show Help', main_window)
+    help_action.setShortcut('F1')
+    help_action.triggered.connect(lambda: log_tabs.currentWidget().show_help_dialog() if log_tabs.currentWidget() else None)
+    help_menu.addAction(help_action)
+    
+    shortcuts_action = QAction('Keyboard Shortcuts', main_window)
+    shortcuts_action.setShortcut('Ctrl+H')
+    shortcuts_action.triggered.connect(lambda: log_tabs.currentWidget().show_help_dialog() if log_tabs.currentWidget() else None)
+    help_menu.addAction(shortcuts_action)
+    
     for log_file in args.log_files:
         log_tabs.add_log(os.path.basename(log_file), "", log_file)
 
