@@ -205,6 +205,11 @@ Integrated help documentation accessible directly from the application.
 
 ## Version History
 
+### v1.1.1 (2025-11-21)
+- 🐛 **CRITICAL FIX:** Fixed memory corruption crash in help dialog
+- 🔧 Replaced QTextBrowser+HTML with QTextEdit+plain text for stability
+- ✅ Help dialog now scrollable without crashes
+
 ### v1.1.0 (2025-11-21)
 - ✨ Added level count badges on filter buttons
 - ✨ Added comprehensive help system with 4 tabs
