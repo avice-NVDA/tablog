@@ -446,14 +446,15 @@ class LogViewer(QWidget):
     def show_help_dialog(self):
         """Show the help dialog with tabs.
         
-        Note: Using QTextEdit with plain text instead of QTextBrowser with HTML
-        to avoid memory corruption issues when scrolling through large HTML content.
+        Note: Using QPlainTextEdit to avoid Qt memory corruption issues.
+        QTextEdit and QTextBrowser both caused malloc crashes when scrolling.
         """
-        from PyQt5.QtWidgets import QDialog, QTabWidget, QTextEdit, QVBoxLayout, QPushButton
+        from PyQt5.QtWidgets import (QDialog, QTabWidget, QPlainTextEdit, 
+                                      QVBoxLayout, QPushButton, QScrollArea)
         
         dialog = QDialog(self)
         dialog.setWindowTitle("TabLog Help")
-        dialog.setModal(True)
+        dialog.setModal(False)  # Non-modal to reduce Qt issues
         dialog.resize(700, 500)
         
         layout = QVBoxLayout()
@@ -463,37 +464,41 @@ class LogViewer(QWidget):
         tabs = QTabWidget()
         layout.addWidget(tabs)
         
-        # Use QTextEdit instead of QTextBrowser for stability
+        # Use QPlainTextEdit - more lightweight and stable
         # Filters Tab
-        filters_tab = QTextEdit()
+        filters_tab = QPlainTextEdit()
         filters_tab.setReadOnly(True)
+        filters_tab.setLineWrapMode(QPlainTextEdit.WidgetWidth)
         filters_tab.setPlainText(self._get_filters_help_text())
         tabs.addTab(filters_tab, "Filters")
         
         # Search Tab
-        search_tab = QTextEdit()
+        search_tab = QPlainTextEdit()
         search_tab.setReadOnly(True)
+        search_tab.setLineWrapMode(QPlainTextEdit.WidgetWidth)
         search_tab.setPlainText(self._get_search_help_text())
         tabs.addTab(search_tab, "Search")
         
         # Shortcuts Tab
-        shortcuts_tab = QTextEdit()
+        shortcuts_tab = QPlainTextEdit()
         shortcuts_tab.setReadOnly(True)
+        shortcuts_tab.setLineWrapMode(QPlainTextEdit.WidgetWidth)
         shortcuts_tab.setPlainText(self._get_shortcuts_help_text())
         tabs.addTab(shortcuts_tab, "Shortcuts")
         
         # About Tab
-        about_tab = QTextEdit()
+        about_tab = QPlainTextEdit()
         about_tab.setReadOnly(True)
+        about_tab.setLineWrapMode(QPlainTextEdit.WidgetWidth)
         about_tab.setPlainText(self._get_about_help_text())
         tabs.addTab(about_tab, "About")
         
         # Close button
         close_btn = QPushButton("Close")
-        close_btn.clicked.connect(dialog.accept)
+        close_btn.clicked.connect(dialog.close)  # Use close instead of accept
         layout.addWidget(close_btn)
         
-        dialog.exec_()
+        dialog.show()  # Use show() instead of exec_() to avoid blocking
     
     def _get_filters_help_text(self) -> str:
         """Generate plain text for filters help tab."""
