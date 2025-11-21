@@ -25,7 +25,9 @@ class TabLogLauncher:
         self.script_dir = Path(__file__).parent.resolve()
         self.tablog_dir = self.script_dir
         self.python_exe = "/home/utils/Python/builds/3.11.9-20250715/bin/python3"
-        self.qt_plugin_path = "/home/utils/qt-5.15.16/plugins"
+        # Use system Qt 5.15.3 plugins instead of custom build (5.15.16)
+        # System Qt is compatible with system GLIBCXX, avoiding malloc crashes
+        self.qt_plugin_path = "/usr/lib64/qt5/plugins"
         
     def setup_environment(self):
         """Set up required environment variables for Qt and TabLog."""
