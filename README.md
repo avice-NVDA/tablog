@@ -16,17 +16,27 @@ A powerful PyQt5-based log viewing application with advanced filtering, search, 
 ## Installation
 
 ### Requirements
-- Python 3.11+
-- PyQt5
+TabLog comes with a self-contained virtual environment that includes all dependencies:
+- Python 3.11.9
+- PyQt5 5.15.6 (with bundled Qt 5.15.2)
 - ansi2html (for ANSI color support)
 
 ### Setup
 ```bash
-# Make the launcher executable
-chmod +x tablog
-
-# Run the application
+# The application is ready to run!
 ./tablog [log_files...]
+
+# The virtual environment is at: venv_pyqt5_rebuild/
+# No additional setup needed - just run it!
+```
+
+### Portability
+TabLog is fully portable! To share with other users:
+```bash
+# Simply copy the entire directory to a shared location
+cp -r /home/scratch.avice_vlsi/tablog /shared/team/location/
+
+# Other users can run it immediately - no setup required!
 ```
 
 ## Usage
@@ -99,7 +109,7 @@ The Python launcher (`tablog.py`) provides detailed diagnostics when connection 
 ```
 tablog/
 ├── LogViewTab.py      # Main tabbed interface
-├── LogViewer.py       # Core log viewing widget
+├── LogViewer.py       # Core log viewing widget (with in-app help!)
 ├── LogLevel.py        # Log level enumeration
 ├── LogLevelColor.py   # Color mapping for levels
 ├── LogLevelKeywords.py # Log classification patterns
@@ -111,6 +121,7 @@ tablog/
 │   ├── Colorizer.py   # Text-based color generator
 │   └── TabBar.py      # Custom colored tab bar
 ├── icons/             # Icon resources
+├── venv_pyqt5_rebuild/ # Self-contained virtual environment (PyQt5 5.15.6)
 ├── example.log        # Sample log file
 ├── tablog             # Python launcher with diagnostics
 └── tablog.bash.backup # Original bash launcher (backup)
@@ -122,7 +133,15 @@ tablog/
 
 ## Version
 
-Current version: 1.1.0
+Current version: 1.2.0
+
+### What's New in v1.2
+- 🎉 **In-app help dialog works flawlessly!** (no more external viewer)
+- ✅ Migrated to self-contained virtual environment (PyQt5 5.15.6 + Qt 5.15.2)
+- ✅ Fixed GLIBCXX incompatibility that caused malloc crashes
+- ✅ Fully portable - copy entire directory to share with team
+- 🚀 Lightweight (227 MB) with all dependencies bundled
+- 📦 No external setup needed - works out of the box
 
 ### What's New in v1.1
 - ✨ Level count badges on filter buttons (e.g., "Error (12)")

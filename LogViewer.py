@@ -444,89 +444,49 @@ class LogViewer(QWidget):
             self.filterTable.selectRow(row_count - 1)
 
     def show_help_dialog(self):
-        """Show help in external viewer to avoid Qt malloc crashes.
+        """Show the help dialog with tabs.
         
-        Qt 5.15.16 has critical bugs causing malloc corruption with ALL text widgets:
-        - QTextBrowser, QTextEdit, QPlainTextEdit, QLabel all crash
-        - Even simple dialogs with text cause memory corruption
-        - This is a Qt installation issue, not our code
-        
-        Workaround: Write help to file and open in external viewer (less/more/vim).
+        Solution A (PyQt5 5.15.6 venv): This version uses PyQt5 from pip with
+        bundled Qt 5.15.2 that has minimal GLIBCXX requirements (3.4 base),
+        compatible with system GLIBCXX 3.4.25. In-app help should work without crashes.
         """
-        import tempfile
-        import subprocess
-        from PyQt5.QtWidgets import QMessageBox
+        from PyQt5.QtWidgets import (QDialog, QTabWidget, QPlainTextEdit,
+                                      QVBoxLayout, QPushButton)
+        from PyQt5.QtCore import Qt
+
         
-        try:
-            # Create temporary help file
-            help_content = f"""
-{'='*70}
-TABLOG HELP
-{'='*70}
-
-{self._get_filters_help_text()}
-
-{'='*70}
-
-{self._get_search_help_text()}
-
-{'='*70}
-
-{self._get_shortcuts_help_text()}
-
-{'='*70}
-
-{self._get_about_help_text()}
-
-{'='*70}
-Press 'q' to quit, arrow keys to scroll
-{'='*70}
-"""
-            
-            # Write to temp file
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, 
-                                            prefix='tablog_help_') as f:
-                f.write(help_content)
-                help_file = f.name
-            
-            # Try to open in terminal viewer (less is most common)
-            # Run in background so it doesn't block TabLog
-            try:
-                subprocess.Popen(['xterm', '-e', f'less -r {help_file}; rm {help_file}'])
-            except:
-                try:
-                    # Fallback: try gnome-terminal
-                    subprocess.Popen(['gnome-terminal', '--', 'less', '-r', help_file])
-                except:
-                    # Last resort: Show file path in message box
-                    QMessageBox.information(
-                        self,
-                        "TabLog Help",
-                        f"Help file created at:\n{help_file}\n\n"
-                        f"View with: less {help_file}\n"
-                        f"or: cat {help_file}\n\n"
-                        f"Note: Qt text widgets crash on this system.\n"
-                        f"Using external viewer as workaround."
-                    )
-        except Exception as e:
-            # If all else fails, show basic keyboard shortcuts
-            QMessageBox.information(
-                self,
-                "TabLog Quick Help",
-                "KEYBOARD SHORTCUTS:\n\n"
-                "F1/Ctrl+H - Help\n"
-                "Ctrl+O - Open file\n"
-                "Ctrl+W - Close tab\n"
-                "Ctrl+R/F5 - Reload\n"
-                "Ctrl+F/F3 - Search\n"
-                "Ctrl+C - Copy\n"
-                "\n"
-                "FILTER BUTTONS:\n"
-                "Click to filter by log level\n"
-                "Counts show (filtered/total)\n"
-                "\n"
-                f"Error: {str(e)}"
-            )
+        dialog = QDialog(self)
+        dialog.setWindowTitle("TabLog Help")
+        dialog.setModal(True)
+        dialog.resize(750, 550)
+        
+        layout = QVBoxLayout()
+        dialog.setLayout(layout)
+        
+        # Create tab widget
+        tabs = QTabWidget()
+        layout.addWidget(tabs)
+        
+        # Create help tabs with QPlainTextEdit (lightweight and stable)
+        def create_help_tab(text):
+            widget = QPlainTextEdit()
+            widget.setReadOnly(True)
+            widget.setLineWrapMode(QPlainTextEdit.WidgetWidth)
+            widget.setPlainText(text)
+            return widget
+        
+        # Add all help tabs
+        tabs.addTab(create_help_tab(self._get_filters_help_text()), "Filters")
+        tabs.addTab(create_help_tab(self._get_search_help_text()), "Search")
+        tabs.addTab(create_help_tab(self._get_shortcuts_help_text()), "Shortcuts")
+        tabs.addTab(create_help_tab(self._get_about_help_text()), "About")
+        
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        layout.addWidget(close_btn)
+        
+        dialog.exec_()
     
     def _get_filters_help_text(self) -> str:
         """Generate plain text for filters help tab."""

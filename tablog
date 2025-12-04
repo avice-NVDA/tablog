@@ -24,11 +24,11 @@ class TabLogLauncher:
     def __init__(self):
         self.script_dir = Path(__file__).parent.resolve()
         self.tablog_dir = self.script_dir
-        self.python_exe = "/home/utils/Python/builds/3.11.9-20250715/bin/python3"
-        # PyQt5 is compiled against custom Qt 5.15.16, must use matching plugins
-        # Note: This Qt has GLIBCXX incompatibility causing text widget crashes
-        # Workaround: Help system uses external viewer (xterm + less)
-        self.qt_plugin_path = "/home/utils/qt-5.15.16/plugins"
+        # Solution A: Use PyQt5 5.15.6 from pip in virtual environment
+        # Python 3.11.9 with bundled Qt 5.15.2 that only requires GLIBCXX_3.4 (base)
+        # Compatible with system GLIBCXX 3.4.25
+        self.python_exe = f"{self.script_dir}/venv_pyqt5_rebuild/bin/python3"
+        self.qt_plugin_path = f"{self.script_dir}/venv_pyqt5_rebuild/lib/python3.11/site-packages/PyQt5/Qt5/plugins"
         
     def setup_environment(self):
         """Set up required environment variables for Qt and TabLog."""

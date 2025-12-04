@@ -1,43 +1,26 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+# Python virtual environment (too large for git)
+venv_pyqt5_rebuild/
 
-# PyQt
-*.ui~
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Log files (don't commit actual log files)
-*.log
-!example.log
-!example1.log
+# Log files (examples are ok, but not test outputs)
+*.log.tmp
 
-# Temporary files
-*.tmp
-*.temp
+# Workspace files
+*.code-workspace
