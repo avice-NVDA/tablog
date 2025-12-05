@@ -224,8 +224,13 @@ class TabLogLauncher:
             return 1
         
         # Execute LogViewTab with arguments
+        # Use subprocess instead of exec to ensure environment is properly passed
         try:
-            os.execv(self.python_exe, [self.python_exe, str(logviewtab_script)] + args)
+            result = subprocess.run(
+                [self.python_exe, str(logviewtab_script)] + args,
+                env=os.environ.copy()  # Explicitly pass the modified environment
+            )
+            return result.returncode
         except Exception as e:
             print(f"ERROR: Failed to launch TabLog: {e}")
             return 1
