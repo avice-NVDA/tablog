@@ -56,16 +56,25 @@ Before (v1.1):
 # LSF sets:
 LD_LIBRARY_PATH=/lsf/lib:/lsf/old_libs:...
 
-# Result: Qt loads old FreeType from /lsf/old_libs → CRASH
+# Result: Qt tries to load FreeType from /lsf/old_libs
+#         Old FreeType doesn't have FT_Get_Font_Format → CRASH
 ```
 
 After (v1.2):
 ```bash
-# Launcher prepends Qt libs:
-LD_LIBRARY_PATH=/path/to/PyQt5/Qt5/lib:/lsf/lib:/lsf/old_libs:...
+# Launcher sets precise library order:
+LD_LIBRARY_PATH=/path/to/PyQt5/Qt5/lib:/lib64:/lsf/lib:/lsf/old_libs:...
+#                 ^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^
+#                 Qt libraries              System FreeType (with correct symbols)
 
-# Result: Qt loads correct FreeType from its own lib directory → SUCCESS ✅
+# Result: 
+#   - Qt loads its own Qt libraries from Qt5/lib ✅
+#   - Qt loads system FreeType from /lib64 (has FT_Get_Font_Format) ✅
+#   - LSF libraries available as fallback ✅
+#   → SUCCESS!
 ```
+
+**Key Insight:** PyQt5 from pip doesn't bundle FreeType - it relies on the system library. By inserting `/lib64` between Qt's lib and LSF's lib, we ensure the correct system FreeType is used instead of LSF's outdated one.
 
 ### Library Resolution Order
 
