@@ -38,6 +38,17 @@ class TabLogLauncher:
         # Set Qt plugin path - CRITICAL for Qt to find platform plugins
         os.environ['QT_PLUGIN_PATH'] = self.qt_plugin_path
         
+        # Set Qt library path - CRITICAL for LSF shell compatibility
+        # Prepend Qt's lib directory to ensure correct libraries are loaded
+        qt_lib_path = f"{self.script_dir}/venv_pyqt5_rebuild/lib/python3.11/site-packages/PyQt5/Qt5/lib"
+        current_ld_path = os.environ.get('LD_LIBRARY_PATH', '')
+        
+        # Prepend Qt lib path (so it takes priority over system/LSF libs)
+        if current_ld_path:
+            os.environ['LD_LIBRARY_PATH'] = f"{qt_lib_path}:{current_ld_path}"
+        else:
+            os.environ['LD_LIBRARY_PATH'] = qt_lib_path
+        
         # Set XDG runtime directory
         user = os.environ.get('USER', 'user')
         os.environ['XDG_RUNTIME_DIR'] = f'/tmp/runtime-{user}'
@@ -45,6 +56,9 @@ class TabLogLauncher:
         # Optional: Disable Qt debug output for cleaner experience
         # Comment out to enable Qt debugging
         os.environ.setdefault('QT_LOGGING_RULES', '*=false')
+        
+        # Suppress Python warnings (including PyQt5 deprecation warnings)
+        os.environ['PYTHONWARNINGS'] = 'ignore::DeprecationWarning'
         
     def check_display(self):
         """
