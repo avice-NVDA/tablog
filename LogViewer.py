@@ -488,9 +488,43 @@ class LogViewer(QWidget):
             logo_pixmap = QPixmap(logo_path).scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             logo_label.setPixmap(logo_pixmap)
             logo_label.setCursor(QCursor(Qt.PointingHandCursor))  # Hand cursor on hover
-            logo_label.setToolTip("Click to view About information")
-            # Make logo clickable - switches to About tab
-            logo_label.mousePressEvent = lambda event: tabs.setCurrentIndex(3)  # About is tab 3
+            logo_label.setToolTip("Click to enlarge logo")
+            
+            # Make logo clickable - shows enlarged version in popup
+            def show_enlarged_logo(event):
+                # Create popup dialog to show enlarged logo
+                logo_dialog = QDialog(dialog)
+                logo_dialog.setWindowTitle("Avice Logo")
+                logo_dialog.setModal(True)
+                
+                logo_layout = QVBoxLayout()
+                logo_dialog.setLayout(logo_layout)
+                
+                # Show large logo (256x256)
+                large_logo_label = QLabel()
+                logo_path_large = os.path.join(os.path.dirname(__file__), 'icons', 'avice_logo_256.png')
+                if os.path.exists(logo_path_large):
+                    large_pixmap = QPixmap(logo_path_large)
+                    large_logo_label.setPixmap(large_pixmap)
+                    large_logo_label.setAlignment(Qt.AlignCenter)
+                    logo_layout.addWidget(large_logo_label)
+                    
+                    # Add logo info
+                    info_label = QLabel("<center><b>Avice Logo</b><br>256 × 256 pixels</center>")
+                    info_label.setStyleSheet("margin: 10px; color: #666;")
+                    logo_layout.addWidget(info_label)
+                    
+                    # Resize dialog to fit logo
+                    logo_dialog.resize(300, 320)
+                
+                # Close button
+                close_btn = QPushButton("Close")
+                close_btn.clicked.connect(logo_dialog.accept)
+                logo_layout.addWidget(close_btn)
+                
+                logo_dialog.exec_()
+            
+            logo_label.mousePressEvent = show_enlarged_logo
         header_layout.addWidget(logo_label)
         
         # Title and subtitle inline
