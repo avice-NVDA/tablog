@@ -492,7 +492,7 @@ class LogViewer(QWidget):
             
             # Make logo clickable - shows enlarged version in popup
             def show_enlarged_logo(event):
-                # Check if large logo file exists first
+                # Check if large logo file exists FIRST (before creating dialog)
                 logo_path_large = os.path.join(os.path.dirname(__file__), 'icons', 'avice_logo_256.png')
                 if not os.path.exists(logo_path_large):
                     # Don't show dialog if logo file doesn't exist
@@ -506,7 +506,7 @@ class LogViewer(QWidget):
                 logo_layout = QVBoxLayout()
                 logo_dialog.setLayout(logo_layout)
                 
-                # Show large logo (256x256)
+                # Show large logo (256x256) - file existence already verified
                 large_logo_label = QLabel()
                 large_pixmap = QPixmap(logo_path_large)
                 large_logo_label.setPixmap(large_pixmap)
