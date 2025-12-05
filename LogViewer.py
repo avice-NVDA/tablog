@@ -451,17 +451,52 @@ class LogViewer(QWidget):
         compatible with system GLIBCXX 3.4.25. In-app help should work without crashes.
         """
         from PyQt5.QtWidgets import (QDialog, QTabWidget, QPlainTextEdit,
-                                      QVBoxLayout, QPushButton)
+                                      QVBoxLayout, QPushButton, QHBoxLayout)
         from PyQt5.QtCore import Qt
+        from PyQt5.QtGui import QPixmap
 
         
         dialog = QDialog(self)
         dialog.setWindowTitle("TabLog Help")
         dialog.setModal(True)
-        dialog.resize(750, 550)
+        dialog.resize(750, 600)
+        
+        # Set dialog icon
+        avice_logo_path = os.path.join(os.path.dirname(__file__), 'icons', 'avice_logo_64.png')
+        if os.path.exists(avice_logo_path):
+            dialog.setWindowIcon(QIcon(avice_logo_path))
         
         layout = QVBoxLayout()
         dialog.setLayout(layout)
+        
+        # Create header with logo
+        header_widget = QWidget()
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(10, 10, 10, 10)
+        header_widget.setLayout(header_layout)
+        
+        # Add Avice logo (96x96)
+        logo_label = QLabel()
+        logo_path_128 = os.path.join(os.path.dirname(__file__), 'icons', 'avice_logo_128.png')
+        if os.path.exists(logo_path_128):
+            logo_pixmap = QPixmap(logo_path_128).scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            logo_label.setPixmap(logo_pixmap)
+            logo_label.setAlignment(Qt.AlignCenter)
+            header_layout.addWidget(logo_label)
+        
+        # Add title text
+        title_layout = QVBoxLayout()
+        title_label = QLabel("<h1 style='margin:0'>TabLog</h1>")
+        title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        subtitle_label = QLabel("<i style='color:#666'>Advanced Log Viewer by Avice</i>")
+        subtitle_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        title_layout.addWidget(title_label)
+        title_layout.addWidget(subtitle_label)
+        title_layout.addStretch()
+        header_layout.addLayout(title_layout)
+        header_layout.addStretch()
+        
+        layout.addWidget(header_widget)
         
         # Create tab widget
         tabs = QTabWidget()
@@ -654,57 +689,97 @@ Right-click            Context menu with Copy
     def _get_about_help_text(self) -> str:
         """Generate plain text for about help tab."""
         return """
-        📋
-    TABLOG
-Version 1.1.0
+════════════════════════════════════════════════════════════════
+                          TABLOG
+        Advanced Log Viewer with Smart Classification
+════════════════════════════════════════════════════════════════
 
-A powerful PyQt5-based log viewing application
+Version:        1.2.0+
+Created by:     Avice
+Email:          avice@nvidia.com
+Organization:   NVIDIA Corporation
+Repository:     github.com:avice-NVDA/tablog.git
 
-================================
-FEATURES
-================================
+════════════════════════════════════════════════════════════════
+                         FEATURES
+════════════════════════════════════════════════════════════════
 
-✅ Multi-tab Interface - Open multiple log files in separate tabs
-✅ Smart Log Classification - Detects DEBUG, INFO, WARNING, ERROR levels
-✅ Advanced Filtering - Filter by log level and search text with highlighting
-✅ Level Counts - See how many lines of each level exist
-✅ Clickable File Links - File paths in logs become clickable links
-✅ Keyboard Shortcuts - Full keyboard navigation support
-✅ Multiple Formats - Supports plain text, gzipped, and ANSI-colored logs
-✅ Dual-Pane View - See full log and filtered results simultaneously
-✅ Copy Support - Copy selected lines to clipboard
+✅ Multi-tab Interface
+   Open multiple log files in separate tabs with easy navigation
 
-================================
-FILE SUPPORT
-================================
+✅ Smart Log Classification
+   Automatically detects TEXT, DEBUG, INFO, WARNING, ERROR levels
 
-• Plain text (.log, .txt)
-• Gzipped logs (.log.gz)
-• ANSI colored logs
-• Clickable file paths (.log, .tcl, .yaml, .cfg, .txt, .py)
+✅ Level Count Badges
+   See real-time counts of lines per level (e.g., "Error (5/12)")
 
-================================
-LINKS
-================================
+✅ Advanced Filtering
+   Filter by log level and search text with live highlighting
 
-📦 GitHub: https://github.com/avice-NVDA/tablog
-📄 Documentation: See README.md and QUICK_START.md
+✅ Regex Search Support
+   Use regular expressions for powerful pattern matching
 
-================================
-REQUIREMENTS
-================================
+✅ Clickable File Links
+   File paths in logs become clickable links to open in new tabs
 
-• Python 3.11+
-• PyQt5
-• ansi2html (for ANSI color support)
+✅ Comprehensive Help System
+   In-app help with detailed documentation and shortcuts
 
-================================
-CREDITS
-================================
+✅ Multiple File Format Support
+   Plain text, gzipped logs (.log.gz), ANSI colored logs
 
-Developed by: avice @ NVIDIA
+✅ Dual-Pane View
+   See full log and filtered results simultaneously
 
-© 2025 TabLog. All rights reserved.
+✅ LSF Shell Compatibility
+   Works in both regular shells and LSF interactive shells
+
+✅ Keyboard Shortcuts
+   Full keyboard navigation for power users
+
+✅ Copy Support
+   Copy selected lines to clipboard with one click
+
+════════════════════════════════════════════════════════════════
+                      FILE FORMATS
+════════════════════════════════════════════════════════════════
+
+Supported file types:
+  • Plain text (.log, .txt)
+  • Gzipped logs (.log.gz)
+  • ANSI colored logs
+  • Clickable paths (.log, .tcl, .yaml, .cfg, .txt, .py, .rpt)
+
+════════════════════════════════════════════════════════════════
+                    TECHNICAL DETAILS
+════════════════════════════════════════════════════════════════
+
+Python Version:     3.11.9
+PyQt5 Version:      5.15.6
+Qt Version:         5.15.2 (bundled)
+GLIBCXX Support:    3.4 (compatible with RHEL 8)
+Platform:           Linux x86_64
+
+Key Libraries:
+  • PyQt5 5.15.6 (with bundled Qt 5.15.2)
+  • ansi2html (for ANSI color conversion)
+  • Virtual environment (portable, self-contained)
+
+════════════════════════════════════════════════════════════════
+                         SUPPORT
+════════════════════════════════════════════════════════════════
+
+📦 GitHub:          github.com:avice-NVDA/tablog.git
+📄 Documentation:   README.md, QUICK_START.md, FEATURES_v1.1.md
+🛠️ Troubleshooting: LSF_SHELL_GUIDE.md, IMPROVEMENTS.md
+📝 Changelog:       CHANGELOG_v1.2.md
+
+════════════════════════════════════════════════════════════════
+
+© 2025 NVIDIA Corporation. Internal Tool.
+Developed with ❤️ by Avice for the NVIDIA VLSI team.
+
+════════════════════════════════════════════════════════════════
 """
 
 

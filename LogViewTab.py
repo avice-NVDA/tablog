@@ -76,7 +76,9 @@ if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)
     main_window = QtWidgets.QMainWindow()
-    main_window.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), 'icons', 'logo.png')))
+    # Use Avice logo as window icon
+    avice_logo_path = os.path.join(os.path.dirname(__file__), 'icons', 'avice_logo_64.png')
+    main_window.setWindowIcon(QIcon(avice_logo_path))
     main_window.setWindowTitle("TabLog")
     main_window.setGeometry(400, 200, 1200, 800)
     log_tabs = LogViewTab(None)
