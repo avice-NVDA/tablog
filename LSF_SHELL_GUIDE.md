@@ -20,12 +20,18 @@ symbol lookup error: libQt5XcbQpa.so.5: undefined symbol: FT_Get_Font_Format
 
 ## Solution
 
-**TabLog v1.2.0+ automatically fixes this!**
+**TabLog v1.2.0+ fixes this with bundled system libraries!**
 
-The launcher now:
-1. ✅ Prepends Qt's library path to `LD_LIBRARY_PATH`
-2. ✅ Ensures Qt loads its bundled compatible libraries first
-3. ✅ Works in both regular shells and LSF shells
+The solution:
+1. ✅ **FreeType** copied to Qt's lib directory (has `FT_Get_Font_Format`)
+2. ✅ **libpng16** copied to Qt's lib directory (required by xcb plugin)
+3. ✅ Qt's `RUNPATH: [$ORIGIN]` finds these libraries first
+4. ✅ LSF's old/incompatible libraries are ignored
+5. ✅ Works in both regular shells and LSF shells
+
+### Why This Works
+
+Qt libraries have `RUNPATH: [$ORIGIN]` which means they search **their own directory first**, before `LD_LIBRARY_PATH`. By copying the correct system libraries into Qt's lib directory, we ensure Qt always finds compatible versions, regardless of what LSF adds to the environment.
 
 ## Testing
 
@@ -112,34 +118,35 @@ The v1.2.0 launcher also:
 
 ### Still Getting Symbol Errors?
 
-If you still see symbol lookup errors after updating to v1.2.0:
+If you still see symbol lookup errors or "no Qt platform plugin could be initialized" after updating to v1.2.0:
 
-1. **Verify you're using the latest launcher:**
+1. **Run the fix script:**
    ```bash
    cd /home/scratch.avice_vlsi/tablog
-   git pull
+   ./fix_lsf_libraries.sh
    ```
+   This copies required system libraries (FreeType, libpng16) to Qt's lib directory.
 
-2. **Check the library path manually:**
+2. **Verify the libraries are in place:**
    ```bash
-   # In LSF shell, before running tablog:
-   echo $LD_LIBRARY_PATH
+   ls -lh venv_pyqt5_rebuild/lib/python3.11/site-packages/PyQt5/Qt5/lib/libfreetype*
+   ls -lh venv_pyqt5_rebuild/lib/python3.11/site-packages/PyQt5/Qt5/lib/libpng16*
+   ```
+   Both should show files.
+
+3. **Check for missing dependencies:**
+   ```bash
+   ldd venv_pyqt5_rebuild/lib/python3.11/site-packages/PyQt5/Qt5/plugins/platforms/libqxcb.so | grep "not found"
+   ```
+   Should return nothing (no missing dependencies).
+
+4. **Verify DISPLAY is set in LSF shell:**
+   ```bash
+   echo $DISPLAY
+   # Should show something like: hostname:3 or :3
    
-   # Should include Qt lib path first after running tablog
-   ```
-
-3. **Test with verbose library loading:**
-   ```bash
-   LD_DEBUG=libs ./tablog example.log 2>&1 | grep -i freetype
-   # This shows which libraries are actually loaded
-   ```
-
-4. **Check for conflicting Qt installations:**
-   ```bash
-   # Make sure no other Qt is interfering
-   echo $QT_PLUGIN_PATH
-   echo $QTDIR
-   # These should only point to tablog's venv
+   # If empty, set it:
+   export DISPLAY=:3
    ```
 
 ### Different LSF Queue Behavior
