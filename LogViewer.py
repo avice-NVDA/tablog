@@ -449,11 +449,13 @@ class LogViewer(QWidget):
         Solution A (PyQt5 5.15.6 venv): This version uses PyQt5 from pip with
         bundled Qt 5.15.2 that has minimal GLIBCXX requirements (3.4 base),
         compatible with system GLIBCXX 3.4.25. In-app help should work without crashes.
+        
+        Features compact inline header with clickable logo.
         """
         from PyQt5.QtWidgets import (QDialog, QTabWidget, QPlainTextEdit,
                                       QVBoxLayout, QPushButton, QHBoxLayout)
         from PyQt5.QtCore import Qt
-        from PyQt5.QtGui import QPixmap
+        from PyQt5.QtGui import QPixmap, QCursor
 
         
         dialog = QDialog(self)
@@ -469,37 +471,42 @@ class LogViewer(QWidget):
         layout = QVBoxLayout()
         dialog.setLayout(layout)
         
-        # Create header with logo
+        # Create tab widget first (needed for logo click handler)
+        tabs = QTabWidget()
+        
+        # OPTION 1: Compact inline header with clickable logo
         header_widget = QWidget()
         header_layout = QHBoxLayout()
-        header_layout.setContentsMargins(10, 10, 10, 10)
+        header_layout.setContentsMargins(8, 8, 8, 8)
+        header_layout.setSpacing(8)
         header_widget.setLayout(header_layout)
         
-        # Add Avice logo (96x96)
+        # Clickable Avice logo (32x32)
         logo_label = QLabel()
-        logo_path_128 = os.path.join(os.path.dirname(__file__), 'icons', 'avice_logo_128.png')
-        if os.path.exists(logo_path_128):
-            logo_pixmap = QPixmap(logo_path_128).scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        logo_path = os.path.join(os.path.dirname(__file__), 'icons', 'avice_logo_64.png')
+        if os.path.exists(logo_path):
+            logo_pixmap = QPixmap(logo_path).scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             logo_label.setPixmap(logo_pixmap)
-            logo_label.setAlignment(Qt.AlignCenter)
-            header_layout.addWidget(logo_label)
+            logo_label.setCursor(QCursor(Qt.PointingHandCursor))  # Hand cursor on hover
+            logo_label.setToolTip("Click to view About information")
+            # Make logo clickable - switches to About tab
+            logo_label.mousePressEvent = lambda event: tabs.setCurrentIndex(3)  # About is tab 3
+        header_layout.addWidget(logo_label)
         
-        # Add title text
-        title_layout = QVBoxLayout()
-        title_label = QLabel("<h1 style='margin:0'>TabLog</h1>")
-        title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        subtitle_label = QLabel("<i style='color:#666'>Advanced Log Viewer by Avice</i>")
-        subtitle_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        title_layout.addWidget(title_label)
-        title_layout.addWidget(subtitle_label)
-        title_layout.addStretch()
-        header_layout.addLayout(title_layout)
+        # Title and subtitle inline
+        title_label = QLabel("<b>TabLog</b> - <i>Advanced Log Viewer by Avice</i>")
+        title_label.setStyleSheet("font-size: 11pt;")
+        header_layout.addWidget(title_label)
+        
         header_layout.addStretch()
-        
         layout.addWidget(header_widget)
         
-        # Create tab widget
-        tabs = QTabWidget()
+        # Add thin separator line
+        separator = QLabel()
+        separator.setFrameStyle(QLabel.HLine | QLabel.Sunken)
+        layout.addWidget(separator)
+        
+        # Add tab widget
         layout.addWidget(tabs)
         
         # Create help tabs with QPlainTextEdit (lightweight and stable)
