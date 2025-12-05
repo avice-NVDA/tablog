@@ -492,6 +492,12 @@ class LogViewer(QWidget):
             
             # Make logo clickable - shows enlarged version in popup
             def show_enlarged_logo(event):
+                # Check if large logo file exists first
+                logo_path_large = os.path.join(os.path.dirname(__file__), 'icons', 'avice_logo_256.png')
+                if not os.path.exists(logo_path_large):
+                    # Don't show dialog if logo file doesn't exist
+                    return
+                
                 # Create popup dialog to show enlarged logo
                 logo_dialog = QDialog(dialog)
                 logo_dialog.setWindowTitle("Avice Logo")
@@ -502,20 +508,18 @@ class LogViewer(QWidget):
                 
                 # Show large logo (256x256)
                 large_logo_label = QLabel()
-                logo_path_large = os.path.join(os.path.dirname(__file__), 'icons', 'avice_logo_256.png')
-                if os.path.exists(logo_path_large):
-                    large_pixmap = QPixmap(logo_path_large)
-                    large_logo_label.setPixmap(large_pixmap)
-                    large_logo_label.setAlignment(Qt.AlignCenter)
-                    logo_layout.addWidget(large_logo_label)
-                    
-                    # Add logo info
-                    info_label = QLabel("<center><b>Avice Logo</b><br>256 × 256 pixels</center>")
-                    info_label.setStyleSheet("margin: 10px; color: #666;")
-                    logo_layout.addWidget(info_label)
-                    
-                    # Resize dialog to fit logo
-                    logo_dialog.resize(300, 320)
+                large_pixmap = QPixmap(logo_path_large)
+                large_logo_label.setPixmap(large_pixmap)
+                large_logo_label.setAlignment(Qt.AlignCenter)
+                logo_layout.addWidget(large_logo_label)
+                
+                # Add logo info
+                info_label = QLabel("<center><b>Avice Logo</b><br>256 × 256 pixels</center>")
+                info_label.setStyleSheet("margin: 10px; color: #666;")
+                logo_layout.addWidget(info_label)
+                
+                # Resize dialog to fit logo
+                logo_dialog.resize(300, 320)
                 
                 # Close button
                 close_btn = QPushButton("Close")
