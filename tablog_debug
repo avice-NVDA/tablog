@@ -30,11 +30,16 @@ os.environ['QT_PLUGIN_PATH'] = qt_plugin_path
 system_lib_path = "/lib64"
 current_ld_path = os.environ.get('LD_LIBRARY_PATH', '')
 
-new_ld_path_parts = [qt_lib_path, system_lib_path]
+# Build new path - join as strings to preserve colon-separated directories
 if current_ld_path:
-    new_ld_path_parts.append(current_ld_path)
+    new_ld_path = f"{qt_lib_path}:{system_lib_path}:{current_ld_path}"
+else:
+    new_ld_path = f"{qt_lib_path}:{system_lib_path}"
 
-os.environ['LD_LIBRARY_PATH'] = ':'.join(new_ld_path_parts)
+os.environ['LD_LIBRARY_PATH'] = new_ld_path
+
+# For display purposes, split into list
+new_ld_path_parts = new_ld_path.split(':')
 
 user = os.environ.get('USER', 'user')
 os.environ['XDG_RUNTIME_DIR'] = f'/tmp/runtime-{user}'
@@ -51,13 +56,20 @@ for i, path in enumerate(new_ld_path_parts, 1):
 print()
 
 print("Checking for FreeType libraries:")
+freetype_found = False
 for path in new_ld_path_parts:
     if os.path.isdir(path):
-        freetype_files = [f for f in os.listdir(path) if 'libfreetype' in f]
-        if freetype_files:
-            print(f"  Found in {path}:")
-            for f in freetype_files:
-                print(f"    - {f}")
+        try:
+            freetype_files = [f for f in os.listdir(path) if 'libfreetype' in f]
+            if freetype_files:
+                freetype_found = True
+                print(f"  Found in {path}:")
+                for f in freetype_files:
+                    print(f"    - {f}")
+        except PermissionError:
+            pass  # Skip directories we can't read
+if not freetype_found:
+    print("  (No FreeType libraries found in LD_LIBRARY_PATH directories)")
 print()
 
 print("=" * 80)

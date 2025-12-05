@@ -47,12 +47,11 @@ class TabLogLauncher:
         current_ld_path = os.environ.get('LD_LIBRARY_PATH', '')
         
         # Build new LD_LIBRARY_PATH: Qt first (for Qt libs), then /lib64 (for FreeType), then rest (LSF)
-        # This way: Qt libs come from Qt, FreeType comes from system, LSF libs are fallback
-        new_ld_path_parts = [qt_lib_path, system_lib_path]
+        # Important: Join as strings, not as list elements, to preserve the colon-separated format
         if current_ld_path:
-            new_ld_path_parts.append(current_ld_path)
-        
-        os.environ['LD_LIBRARY_PATH'] = ':'.join(new_ld_path_parts)
+            os.environ['LD_LIBRARY_PATH'] = f"{qt_lib_path}:{system_lib_path}:{current_ld_path}"
+        else:
+            os.environ['LD_LIBRARY_PATH'] = f"{qt_lib_path}:{system_lib_path}"
         
         # Set XDG runtime directory
         user = os.environ.get('USER', 'user')
