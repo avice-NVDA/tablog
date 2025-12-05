@@ -26,13 +26,24 @@ class LogLevelKeywords:
                              "^FATAL", "^F:", "^Fatal:", "^-F-", "^-Fatal-",
                              "^CRITICAL", "^C:", "^-C-", "^-Critical-",
                              "^Segmentation fault encountered", "^Error:", "^Fatal:", "^Critical:",
+                             r"^\*\*ERROR",  # Lines starting with **ERROR
+                             r"^\[NV\]\[.*?\]Error",  # Lines like [NV][28/Nov/2025 19:17:55 IST]Error
+                             r"^\[main\] Error",  # Lines starting with [main] Error
+                             "^TOTAL ERRORS",  # Lines starting with TOTAL ERRORS
                              r"\[ERROR\s*\]", r"ERROR\]",
-                             r"\[FATAL\s*\]", r"\[CRITICAL\s*\]"],
+                             r"\[FATAL\s*\]", r"\[CRITICAL\s*\]",
+                             r"FATAL",  # FATAL anywhere in line
+                             r"(?i)Extended\s+Error\s+Info"],  # Case insensitive Extended Error Info
         }
         self._compiled_patterns = {}
         for keywords in self._level_to_keywords.values():
-            for keyword in [k for k in keywords if k and not k.startswith('^')]:
-                self._compiled_patterns[keyword] = re.compile(RF"{keyword}")
+            for keyword in [k for k in keywords if k]:
+                # Compile all regex patterns (both ^ and non-^ patterns with regex chars)
+                if not keyword.startswith('^') or any(c in keyword for c in r'[]().*+?{}|\\'):
+                    try:
+                        self._compiled_patterns[keyword] = re.compile(RF"{keyword}")
+                    except re.error:
+                        pass  # Skip invalid patterns
 
     def __getitem__(self, level: LogLevel) -> list[str]:
         return self._level_to_keywords[level]
@@ -62,15 +73,23 @@ class LogLevelKeywords:
                     break
                 if level == default_level:
                     continue
-                for keyword in [k for k in self.keywords(level) if k.startswith('^')]:
-                    if line.startswith(keyword[1:]):
-                        classification, level_assigned = level, True
-                        break
-                if not level_assigned:
-                    for keyword in [k for k in self.keywords(level) if not k.startswith('^')]:
-                        # if keyword in line and self._compiled_patterns[keyword].search(line):
+                # Check all patterns (both ^ and non-^ patterns)
+                for keyword in self.keywords(level):
+                    if not keyword:  # Skip empty patterns
+                        continue
+                    
+                    # If it's a simple ^ pattern (no regex chars), use fast string startswith
+                    if keyword.startswith('^') and not any(c in keyword for c in r'[]().*+?{}|\\'):
+                        if line.startswith(keyword[1:]):
+                            classification, level_assigned = level, True
+                            break
+                    # Otherwise, use compiled regex pattern
+                    elif keyword in self._compiled_patterns:
                         if self._compiled_patterns[keyword].search(line):
                             classification, level_assigned = level, True
                             break
+                    
+                if level_assigned:
+                    break
             classified_data.append((classification, line))
         return classified_data
