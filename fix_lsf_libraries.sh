@@ -53,6 +53,9 @@ copy_lib "libfreetype.so.6" "/lib64/libfreetype.so.6"
 # Copy libpng16 (required by xcb platform plugin)
 copy_lib "libpng16.so.16" "/usr/lib64/libpng16.so.16"
 
+# Copy zlib (libpng16 requires ZLIB_1.2.9)
+copy_lib "libz.so.1" "/lib64/libz.so.1"
+
 echo ""
 echo "=========================================="
 echo "Verifying xcb plugin dependencies..."
