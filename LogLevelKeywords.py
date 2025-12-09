@@ -21,6 +21,11 @@ class LogLevelKeywords:
             LogLevel.INFO: ["^INFO", "^I:", "^Information:", "^-I-", "^-Info-",
                             r"\[INFO\s*\]", r"INFO\]"],
             LogLevel.WARNING: ["^WARNING", "^W:", "^Warning:", "^-W-", "^-Warning-",
+                               "^Warning",  # Lines starting with Warning (without colon)
+                               r"^\[main\] Warning",  # Lines starting with [main] Warning
+                               "^#WARNING",  # Lines starting with #WARNING
+                               r"^\*\*WARN",  # Lines starting with **WARN
+                               r"^\[NV\]\[.*?\]Warning",  # Lines like [NV][09/Dec/2025 17:09:35 IST]Warning
                                r"\[WARNING\]", r"WARN\]", r"\[WARN\s*\]"],
             LogLevel.ERROR: ["^ERROR", "^E:", "^Error:", "^-E-", "^-Error-",
                              "^FATAL", "^F:", "^Fatal:", "^-F-", "^-Fatal-",
