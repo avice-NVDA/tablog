@@ -29,6 +29,8 @@ class LogLevelKeywords:
                              r"^\*\*ERROR",  # Lines starting with **ERROR
                              r"^\[NV\]\[.*?\]Error",  # Lines like [NV][28/Nov/2025 19:17:55 IST]Error
                              r"^\[main\] Error",  # Lines starting with [main] Error
+                             r"^\[ErrorParser\]",  # Lines starting with [ErrorParser]
+                             "^ERR",  # Lines starting with ERR
                              "^TOTAL ERRORS",  # Lines starting with TOTAL ERRORS
                              r"\[ERROR\s*\]", r"ERROR\]",
                              r"\[FATAL\s*\]", r"\[CRITICAL\s*\]",
