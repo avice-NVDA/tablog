@@ -458,14 +458,15 @@ class LogViewer(QWidget):
     def init_font_shortcuts(self):
         """Setup keyboard shortcuts for font size adjustment."""
         # Increase font size: Ctrl++ or Ctrl+=
-        QShortcut(QKeySequence("Ctrl++"), self).activated.connect(self.increase_font_size)
-        QShortcut(QKeySequence("Ctrl+="), self).activated.connect(self.increase_font_size)
+        # Note: + key is Shift+= on most keyboards, so we bind to both Plus and Equal
+        QShortcut(QKeySequence(Qt.CTRL + Qt.Key_Plus), self).activated.connect(self.increase_font_size)
+        QShortcut(QKeySequence(Qt.CTRL + Qt.Key_Equal), self).activated.connect(self.increase_font_size)
         
         # Decrease font size: Ctrl+-
-        QShortcut(QKeySequence("Ctrl+-"), self).activated.connect(self.decrease_font_size)
+        QShortcut(QKeySequence(Qt.CTRL + Qt.Key_Minus), self).activated.connect(self.decrease_font_size)
         
         # Reset font size: Ctrl+0
-        QShortcut(QKeySequence("Ctrl+0"), self).activated.connect(self.reset_font_size)
+        QShortcut(QKeySequence(Qt.CTRL + Qt.Key_0), self).activated.connect(self.reset_font_size)
 
     def increase_font_size(self):
         """Increase font size by 1pt."""
