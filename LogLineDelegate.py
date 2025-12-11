@@ -33,21 +33,32 @@ class LogLineDelegate(QStyledItemDelegate):
         # no wrappping for filter
         if self.is_filter:
             return text
-        # Regular expression to match NFS file paths
-        nfs_pattern = r'((\/home\/)[\w\/._:-]+\.(log|tcl|yaml|cfg|txt|py))'
+        
+        # Pattern 1: HTTP/HTTPS URLs
+        http_pattern = r'(https?://[^\s<>"]+)'
+        
+        # Pattern 2: NFS file paths (including .prc and .prc.status)
+        # Note: .prc.status must come before .prc for proper matching
+        nfs_pattern = r'((\/home\/)[\w\/._:-]+\.(prc\.status|log|tcl|yaml|cfg|txt|py|prc))'
+
+        # Function to wrap HTTP/HTTPS URLs
+        def wrap_http_link(re_match: re.Match) -> str:
+            url = re_match.group(1)
+            return f'<a href="URL:{url}" style="color:#0066CC">{url}</a>'
 
         # Function to wrap the matched NFS file path with <a> tag
         def wrap_with_a_tag(re_match: re.Match) -> str:
             nfs_path = re_match.group(1)
             if os.path.exists(nfs_path):
                 if os.path.isfile(nfs_path):
-                    return f'<a href="{nfs_path}">{nfs_path}</a>'
+                    return f'<a href="FILE:{nfs_path}">{nfs_path}</a>'
                 elif os.path.isdir(nfs_path):
                     return nfs_path
             return f'<u style="color:#BF5B16">{nfs_path}</u>'
 
-        # Use re.sub() to replace the NFS file path with the wrapped version
-        wrapped_line = re.sub(nfs_pattern, wrap_with_a_tag, text)
+        # First replace HTTP/HTTPS URLs, then file paths
+        wrapped_line = re.sub(http_pattern, wrap_http_link, text)
+        wrapped_line = re.sub(nfs_pattern, wrap_with_a_tag, wrapped_line)
         return wrapped_line
 
     def paint(self, painter, option, index):
@@ -81,12 +92,27 @@ class LogLineDelegate(QStyledItemDelegate):
             pos = event.pos() - option.rect.topLeft()
 
             anchor = self.docText.documentLayout().anchorAt(pos)
-            if anchor:  # If the click is on a file link
-                if self.linkCallback:
-                    self.linkCallback(anchor)
-                else:
-                    # noinspection PyUnresolvedReferences
-                    index.model().parent.load_file(anchor)
+            if anchor:  # If the click is on a link
+                # Check if it's a URL (starts with URL:) or file path (starts with FILE:)
+                if anchor.startswith("URL:"):
+                    # HTTP/HTTPS link - open in Firefox
+                    url = anchor[4:]  # Remove "URL:" prefix
+                    import subprocess
+                    firefox_path = "/home/utils/firefox-118.0.1/firefox"
+                    try:
+                        subprocess.Popen([firefox_path, url], 
+                                       stdout=subprocess.DEVNULL, 
+                                       stderr=subprocess.DEVNULL)
+                    except Exception as e:
+                        print(f"Failed to open URL in Firefox: {e}")
+                elif anchor.startswith("FILE:"):
+                    # File path - open in TabLog
+                    file_path = anchor[5:]  # Remove "FILE:" prefix
+                    if self.linkCallback:
+                        self.linkCallback(file_path)
+                    else:
+                        # noinspection PyUnresolvedReferences
+                        index.model().parent.load_file(file_path)
                 return False
         return super().editorEvent(event, model, option, index)
 
