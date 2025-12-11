@@ -41,10 +41,16 @@ class LogLineDelegate(QStyledItemDelegate):
         # Note: .prc.status must come before .prc for proper matching
         nfs_pattern = r'((\/home\/)[\w\/._:-]+\.(prc\.status|log|tcl|yaml|cfg|txt|py|prc))'
 
-        # Function to wrap HTTP/HTTPS URLs
-        def wrap_http_link(re_match: re.Match) -> str:
+        # Store HTTP/HTTPS URLs with placeholders to protect them from file pattern matching
+        url_placeholder_map = {}
+        placeholder_counter = [0]  # Use list to allow modification in nested function
+        
+        def wrap_http_link_with_placeholder(re_match: re.Match) -> str:
             url = re_match.group(1)
-            return f'<a href="URL:{url}" style="color:#0066CC">{url}</a>'
+            placeholder = f'__HTTP_PLACEHOLDER_{placeholder_counter[0]}__'
+            placeholder_counter[0] += 1
+            url_placeholder_map[placeholder] = f'<a href="URL:{url}" style="color:#0066CC">{url}</a>'
+            return placeholder
 
         # Function to wrap the matched NFS file path with <a> tag
         def wrap_with_a_tag(re_match: re.Match) -> str:
@@ -56,9 +62,16 @@ class LogLineDelegate(QStyledItemDelegate):
                     return nfs_path
             return f'<u style="color:#BF5B16">{nfs_path}</u>'
 
-        # First replace HTTP/HTTPS URLs, then file paths
-        wrapped_line = re.sub(http_pattern, wrap_http_link, text)
+        # Step 1: Replace HTTP/HTTPS URLs with placeholders
+        wrapped_line = re.sub(http_pattern, wrap_http_link_with_placeholder, text)
+        
+        # Step 2: Replace file paths (won't match inside placeholders)
         wrapped_line = re.sub(nfs_pattern, wrap_with_a_tag, wrapped_line)
+        
+        # Step 3: Restore HTTP/HTTPS URLs from placeholders
+        for placeholder, url_html in url_placeholder_map.items():
+            wrapped_line = wrapped_line.replace(placeholder, url_html)
+        
         return wrapped_line
 
     def paint(self, painter, option, index):
