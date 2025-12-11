@@ -131,11 +131,11 @@ class LogLineDelegate(QStyledItemDelegate):
                         
                         # Show tooltip if file was already open
                         if was_existing:
-                            # Get current mouse position
+                            # Get current mouse position (global screen coordinates)
                             global_pos = QCursor.pos()
-                            # Check if it's the current tab (index 0 usually means current)
-                            tooltip_msg = f"Already viewing: {file_name}"
-                            QToolTip.showText(global_pos, tooltip_msg, self.parent, self.parent.rect(), 2000)
+                            tooltip_msg = f"✓ Already viewing: {file_name}"
+                            # Show tooltip at cursor position for 2 seconds
+                            QToolTip.showText(global_pos, tooltip_msg, self.parent)
                     else:
                         # noinspection PyUnresolvedReferences
                         index.model().parent.load_file(file_path)

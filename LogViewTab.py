@@ -1,4 +1,5 @@
 #!/home/utils/Python/builds/3.11.9-20250715/bin/python3
+import os
 import os.path
 from functools import partial
 
@@ -38,9 +39,28 @@ class LogViewTab(QtWidgets.QTabWidget):
     def add_log(self, title: str, name: str, file: str):
         """Add a log file to the tab view, or switch to it if already open.
         
+        When opening via link click, generate unique title from file path
+        to ensure each file gets a distinct color.
+        
         Returns:
             bool: True if the tab already existed, False if newly created
         """
+        # Check if this is being opened via link (name is empty and title might be reused)
+        # Generate unique title from file path to ensure unique colors
+        if not name:
+            # Extract a meaningful title from the file path
+            # Use the parent directory name + filename for uniqueness
+            file_parts = file.split('/')
+            if len(file_parts) >= 2:
+                # Use last 2 parts: parent_dir/filename
+                unique_title = '/'.join(file_parts[-2:])
+            else:
+                unique_title = os.path.basename(file)
+            
+            # If title is generic or being reused, use the unique one
+            if not title or title == os.path.basename(file):
+                title = unique_title
+        
         tabs = [(t, self.widget(t)) for t in range(self.count())
                 if self.widget(t).title == title]
         insert_index = tabs[-1][0] + 1 if tabs else self.count()
@@ -53,8 +73,15 @@ class LogViewTab(QtWidgets.QTabWidget):
             # Create new tab
             log_viewer = LogViewer(title, name, file, self)
             log_viewer.set_link_callback(partial(self.add_log, title, name))
-            index = self.insertTab(insert_index, log_viewer, log_viewer.name)
-            self.setTabToolTip(index, F"<h4>{title}</h4><h5>{name}</h5><h5>{file}</h5>")
+            
+            # Get display name (elide if too long)
+            display_name = log_viewer.name
+            if len(display_name) > 30:
+                display_name = display_name[:27] + "..."
+            
+            index = self.insertTab(insert_index, log_viewer, display_name)
+            # Set tooltip to show full path on hover
+            self.setTabToolTip(index, F"<h4>{title}</h4><h5>{log_viewer.name}</h5><h5>{file}</h5>")
             was_existing = False
         
         # Switch to the tab (existing or new)
@@ -69,31 +96,40 @@ class LogViewTab(QtWidgets.QTabWidget):
     def flash_tab(self, index: int):
         """Flash the tab at the given index to provide visual feedback.
         
-        Briefly changes the tab background color to indicate it's already open.
-        Uses a timer to create a flash effect (2 flashes over 400ms).
+        Briefly changes the tab background to orange to indicate it's already open.
+        Works with custom TabBar paintEvent by temporarily changing widget background.
         """
         from PyQt5.QtCore import QTimer
         
-        # Get the tab bar
-        tab_bar = self.tabBar()
+        # Get the LogViewer widget at this tab
+        log_viewer = self.widget(index)
+        if not log_viewer:
+            return
         
-        # Store original stylesheet
-        original_style = tab_bar.tabTextColor(index)
+        # Store original background color
+        original_bg = log_viewer.get_background()
         flash_count = [0]  # Use list to allow modification in nested function
+        orange_bg = "#FF8C00"  # Orange color for flash
         
         def toggle_flash():
             if flash_count[0] < 4:  # 4 toggles = 2 complete flashes
                 if flash_count[0] % 2 == 0:
-                    # Flash ON - highlight background
-                    tab_bar.setTabTextColor(index, QtGui.QColor(255, 140, 0))  # Orange text
+                    # Flash ON - set orange background
+                    log_viewer.background = orange_bg
                 else:
                     # Flash OFF - restore original
-                    tab_bar.setTabTextColor(index, original_style)
+                    log_viewer.background = original_bg
                 flash_count[0] += 1
+                
+                # Force tab bar to repaint
+                self.tabBar().update()
+                
+                # Schedule next toggle
                 QTimer.singleShot(100, toggle_flash)  # Next toggle in 100ms
             else:
                 # Ensure we end with original color
-                tab_bar.setTabTextColor(index, original_style)
+                log_viewer.background = original_bg
+                self.tabBar().update()
         
         # Start the flash animation
         toggle_flash()
