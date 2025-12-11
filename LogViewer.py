@@ -371,7 +371,7 @@ class LogViewer(QWidget):
                     (LogLevel.ERROR, F"File not found: '{self.logFile}'")
                 ])
                 return
-            self.isLog = self.logFile.endswith(".log") or self.logFile.endswith(".log.gz")
+            # Detect file type using 'file' command (content-based, not extension-based)
             file_type = "ASCII text"
             with os.popen(F"/usr/bin/file -bL {log_file}") as fd:
                 lines = fd.read().splitlines(keepends=False)
@@ -392,14 +392,14 @@ class LogViewer(QWidget):
                     (LogLevel.ERROR, F"Unsupported file type: '{file_type}'")
                 ])
                 return
-            if self.isLog:
-                self.logModel.update_data(self.logLevelKeywords.classify_lines(lines))
-            else:
-                self.logModel.update_data([(LogLevel.TEXT, line) for line in lines])
-                for b in self.levelButtons.values():
-                    b.setChecked(False)
-                    b.setEnabled(False)
-                self.cleanLevels.setEnabled(False)
+            
+            # Treat ALL successfully loaded text files as logs for classification
+            # This enables filters/classification for .txt, .prc, .yaml, .status, etc.
+            self.isLog = True
+            
+            # Always classify lines by log level patterns (ERROR, WARNING, INFO, DEBUG, TEXT)
+            # If no patterns match, lines are classified as TEXT with count shown
+            self.logModel.update_data(self.logLevelKeywords.classify_lines(lines))
             self.logTable.resizeColumnToContents(0)
 
             self.count_levels()
