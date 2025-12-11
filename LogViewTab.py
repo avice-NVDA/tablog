@@ -2,7 +2,7 @@
 import os.path
 from functools import partial
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QAction, QShortcut
 
@@ -36,18 +36,67 @@ class LogViewTab(QtWidgets.QTabWidget):
         shortcut_ctrl_w.activated.connect(lambda: self.removeTab(self.currentIndex()))
 
     def add_log(self, title: str, name: str, file: str):
+        """Add a log file to the tab view, or switch to it if already open.
+        
+        Returns:
+            bool: True if the tab already existed, False if newly created
+        """
         tabs = [(t, self.widget(t)) for t in range(self.count())
                 if self.widget(t).title == title]
         insert_index = tabs[-1][0] + 1 if tabs else self.count()
         tabs = [(t, w) for t, w in tabs if w.logFile == file]
         if tabs:
+            # Tab already exists
             index, log_viewer = tabs[0]
+            was_existing = True
         else:
+            # Create new tab
             log_viewer = LogViewer(title, name, file, self)
             log_viewer.set_link_callback(partial(self.add_log, title, name))
             index = self.insertTab(insert_index, log_viewer, log_viewer.name)
             self.setTabToolTip(index, F"<h4>{title}</h4><h5>{name}</h5><h5>{file}</h5>")
+            was_existing = False
+        
+        # Switch to the tab (existing or new)
         self.setCurrentWidget(log_viewer)
+        
+        # If tab already existed, provide visual feedback
+        if was_existing:
+            self.flash_tab(index)
+        
+        return was_existing
+
+    def flash_tab(self, index: int):
+        """Flash the tab at the given index to provide visual feedback.
+        
+        Briefly changes the tab background color to indicate it's already open.
+        Uses a timer to create a flash effect (2 flashes over 400ms).
+        """
+        from PyQt5.QtCore import QTimer
+        
+        # Get the tab bar
+        tab_bar = self.tabBar()
+        
+        # Store original stylesheet
+        original_style = tab_bar.tabTextColor(index)
+        flash_count = [0]  # Use list to allow modification in nested function
+        
+        def toggle_flash():
+            if flash_count[0] < 4:  # 4 toggles = 2 complete flashes
+                if flash_count[0] % 2 == 0:
+                    # Flash ON - highlight background
+                    tab_bar.setTabTextColor(index, QtGui.QColor(255, 140, 0))  # Orange text
+                else:
+                    # Flash OFF - restore original
+                    tab_bar.setTabTextColor(index, original_style)
+                flash_count[0] += 1
+                QTimer.singleShot(100, toggle_flash)  # Next toggle in 100ms
+            else:
+                # Ensure we end with original color
+                tab_bar.setTabTextColor(index, original_style)
+        
+        # Start the flash animation
+        toggle_flash()
 
     def rename_tab(self, old_title: str, new_title: str):
         viewers: list[(int, LogViewer)] = [

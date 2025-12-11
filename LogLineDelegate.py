@@ -12,8 +12,8 @@ import os
 import re
 
 from PyQt5.QtCore import Qt, QEvent
-from PyQt5.QtGui import QTextDocument, QColor
-from PyQt5.QtWidgets import QStyledItemDelegate, QTableView, QStyle
+from PyQt5.QtGui import QTextDocument, QColor, QCursor
+from PyQt5.QtWidgets import QStyledItemDelegate, QTableView, QStyle, QToolTip
 
 from LogLevelColor import LogLevelColor
 
@@ -123,8 +123,19 @@ class LogLineDelegate(QStyledItemDelegate):
                 elif anchor.startswith("FILE:"):
                     # File path - open in TabLog
                     file_path = anchor[5:]  # Remove "FILE:" prefix
+                    file_name = os.path.basename(file_path)
+                    
                     if self.linkCallback:
-                        self.linkCallback(file_path)
+                        # linkCallback returns True if tab already existed
+                        was_existing = self.linkCallback(file_path)
+                        
+                        # Show tooltip if file was already open
+                        if was_existing:
+                            # Get current mouse position
+                            global_pos = QCursor.pos()
+                            # Check if it's the current tab (index 0 usually means current)
+                            tooltip_msg = f"Already viewing: {file_name}"
+                            QToolTip.showText(global_pos, tooltip_msg, self.parent, self.parent.rect(), 2000)
                     else:
                         # noinspection PyUnresolvedReferences
                         index.model().parent.load_file(file_path)
@@ -143,7 +154,8 @@ class LogLineDelegate(QStyledItemDelegate):
         if anchor:
             option.widget.setCursor(Qt.PointingHandCursor)
         else:
-            option.widget.setCursor(Qt.ArrowCursor)
+            # Unset cursor to restore default behavior instead of forcing ArrowCursor
+            option.widget.unsetCursor()
         return super().helpEvent(event, view, option, index)
 
     def sizeHint(self, option, index):
