@@ -73,6 +73,11 @@ class LogViewer(QWidget):
         self.helpButton = QPushButton("❓ Help")
         self.init_ui()
         self.init_font_shortcuts()
+        
+        # Install event filter to intercept Ctrl+Wheel events before tables consume them
+        self.logTable.viewport().installEventFilter(self)
+        self.filterTable.viewport().installEventFilter(self)
+        
         self.load_file(self.logFile)
 
     def get_background(self) -> str:
@@ -534,8 +539,39 @@ class LogViewer(QWidget):
         settings = QSettings("Avice", "TabLog")
         settings.setValue("font_size", self.current_font_size)
 
+    def eventFilter(self, obj, event):
+        """Event filter to intercept Ctrl+Wheel events before child widgets process them.
+        
+        This is necessary because tables consume wheel events for scrolling.
+        By filtering events at the viewport level, we can intercept Ctrl+Wheel
+        BEFORE the table scrolls, allowing immediate font size adjustment.
+        """
+        from PyQt5.QtCore import QEvent
+        
+        if event.type() == QEvent.Wheel:
+            # Check if Ctrl key is held down
+            if event.modifiers() & Qt.ControlModifier:
+                # Get wheel delta (positive = scroll up/away, negative = scroll down/toward)
+                delta = event.angleDelta().y()
+                
+                if delta > 0:
+                    # Wheel up → Increase font size
+                    self.increase_font_size()
+                elif delta < 0:
+                    # Wheel down → Decrease font size
+                    self.decrease_font_size()
+                
+                # Return True to indicate event was handled (prevents further processing)
+                return True
+        
+        # For all other events, use default behavior
+        return super().eventFilter(obj, event)
+
     def wheelEvent(self, event):
         """Handle mouse wheel events for font size adjustment.
+        
+        This handles wheel events on the LogViewer widget itself (non-table areas).
+        Table wheel events are handled by eventFilter() above.
         
         When Ctrl is held down, mouse wheel adjusts font size:
         - Wheel up (away from user) → Increase font size
