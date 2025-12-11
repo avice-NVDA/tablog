@@ -108,20 +108,19 @@ if __name__ == '__main__':
     # View menu
     view_menu = main_window.menuBar().addMenu("View")
     
-    zoom_in_action = QAction('Zoom In', main_window)
-    zoom_in_action.setShortcut('Ctrl++')
+    # Note: Actual shortcuts are registered in LogViewer.init_font_shortcuts() with ApplicationShortcut context
+    # Menu items just display the shortcut hint and trigger the same methods when clicked
+    zoom_in_action = QAction('Zoom In\tCtrl++', main_window)  # \t adds shortcut hint without registering
     zoom_in_action.triggered.connect(
         lambda: log_tabs.currentWidget().increase_font_size() if log_tabs.currentWidget() else None)
     view_menu.addAction(zoom_in_action)
     
-    zoom_out_action = QAction('Zoom Out', main_window)
-    zoom_out_action.setShortcut('Ctrl+-')
+    zoom_out_action = QAction('Zoom Out\tCtrl+-', main_window)  # \t adds shortcut hint without registering
     zoom_out_action.triggered.connect(
         lambda: log_tabs.currentWidget().decrease_font_size() if log_tabs.currentWidget() else None)
     view_menu.addAction(zoom_out_action)
     
-    reset_zoom_action = QAction('Reset Zoom', main_window)
-    reset_zoom_action.setShortcut('Ctrl+0')
+    reset_zoom_action = QAction('Reset Zoom\tCtrl+0', main_window)  # \t adds shortcut hint without registering
     reset_zoom_action.triggered.connect(
         lambda: log_tabs.currentWidget().reset_font_size() if log_tabs.currentWidget() else None)
     view_menu.addAction(reset_zoom_action)

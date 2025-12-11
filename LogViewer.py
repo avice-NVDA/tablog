@@ -456,17 +456,31 @@ class LogViewer(QWidget):
             self.filterTable.selectRow(row_count - 1)
 
     def init_font_shortcuts(self):
-        """Setup keyboard shortcuts for font size adjustment."""
+        """Setup keyboard shortcuts for font size adjustment.
+        
+        Note: These shortcuts have Qt.ApplicationShortcut context so they work
+        regardless of which widget has focus. This ensures Ctrl+0, Ctrl+-, etc.
+        work consistently throughout the application.
+        """
         # Increase font size: Ctrl++ or Ctrl+=
         # Note: + key is Shift+= on most keyboards, so we bind to both Plus and Equal
-        QShortcut(QKeySequence(Qt.CTRL + Qt.Key_Plus), self).activated.connect(self.increase_font_size)
-        QShortcut(QKeySequence(Qt.CTRL + Qt.Key_Equal), self).activated.connect(self.increase_font_size)
+        shortcut_plus = QShortcut(QKeySequence(Qt.CTRL + Qt.Key_Plus), self)
+        shortcut_plus.setContext(Qt.ApplicationShortcut)
+        shortcut_plus.activated.connect(self.increase_font_size)
+        
+        shortcut_equal = QShortcut(QKeySequence(Qt.CTRL + Qt.Key_Equal), self)
+        shortcut_equal.setContext(Qt.ApplicationShortcut)
+        shortcut_equal.activated.connect(self.increase_font_size)
         
         # Decrease font size: Ctrl+-
-        QShortcut(QKeySequence(Qt.CTRL + Qt.Key_Minus), self).activated.connect(self.decrease_font_size)
+        shortcut_minus = QShortcut(QKeySequence(Qt.CTRL + Qt.Key_Minus), self)
+        shortcut_minus.setContext(Qt.ApplicationShortcut)
+        shortcut_minus.activated.connect(self.decrease_font_size)
         
         # Reset font size: Ctrl+0
-        QShortcut(QKeySequence(Qt.CTRL + Qt.Key_0), self).activated.connect(self.reset_font_size)
+        shortcut_zero = QShortcut(QKeySequence(Qt.CTRL + Qt.Key_0), self)
+        shortcut_zero.setContext(Qt.ApplicationShortcut)
+        shortcut_zero.activated.connect(self.reset_font_size)
 
     def increase_font_size(self):
         """Increase font size by 1pt."""
