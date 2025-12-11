@@ -102,6 +102,8 @@ class LogLineDelegate(QStyledItemDelegate):
         if event.type() == QEvent.MouseButtonRelease and event.button() == Qt.LeftButton:
             text = index.model().data(index)
             self.docText.setHtml(self.wrap_log_file(text))
+            # CRITICAL: Set text width to match what was painted, otherwise anchor detection fails!
+            self.docText.setTextWidth(option.rect.width())
             pos = event.pos() - option.rect.topLeft()
 
             anchor = self.docText.documentLayout().anchorAt(pos)
@@ -134,6 +136,8 @@ class LogLineDelegate(QStyledItemDelegate):
             return super().helpEvent(event, view, option, index)
         text = index.model().data(index)
         self.docText.setHtml(self.wrap_log_file(text))
+        # CRITICAL: Set text width to match what was painted, otherwise anchor detection fails!
+        self.docText.setTextWidth(option.rect.width())
         pos = event.pos() - option.rect.topLeft()
         anchor = self.docText.documentLayout().anchorAt(pos)
         if anchor:
