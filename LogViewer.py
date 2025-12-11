@@ -15,7 +15,7 @@ import os
 import sys
 import traceback
 from ansi2html import Ansi2HTMLConverter as a2h
-from PyQt5.QtCore import Qt, QModelIndex, QPoint, QEventLoop, QObject
+from PyQt5.QtCore import Qt, QModelIndex, QPoint, QEventLoop, QObject, QSettings
 from PyQt5.QtGui import QFont, QColor, QCursor, QIcon, QKeySequence, QClipboard
 from PyQt5.QtWidgets import (
     QApplication,
@@ -45,6 +45,17 @@ class LogViewer(QWidget):
         self.parent = parent
         self.background = Colorizer(title).hex()
         self.logLevelKeywords = LogLevelKeywords()
+        
+        # Font size settings
+        self.default_font_size = 10
+        self.min_font_size = 6
+        self.max_font_size = 24
+        # Load saved font size preference or use default
+        settings = QSettings("Avice", "TabLog")
+        self.current_font_size = settings.value("font_size", self.default_font_size, type=int)
+        # Ensure loaded value is within valid range
+        self.current_font_size = max(self.min_font_size, min(self.max_font_size, self.current_font_size))
+        
         super().__init__(parent)
         self.setWindowTitle(title)
         self.fileTitle = QLineEdit()
@@ -61,6 +72,7 @@ class LogViewer(QWidget):
         self.searchEntry = QLineEdit()
         self.helpButton = QPushButton("❓ Help")
         self.init_ui()
+        self.init_font_shortcuts()
         self.load_file(self.logFile)
 
     def get_background(self) -> str:
@@ -118,7 +130,7 @@ class LogViewer(QWidget):
         bottom_section.layout().addWidget(self.filterTable)
         self.splitter.addWidget(bottom_section)
 
-        monospaced_font = QFont("Courier New", 10)
+        monospaced_font = QFont("Courier New", self.current_font_size)
 
         for ind, table in enumerate([self.logTable, self.filterTable]):
             table.horizontalHeader().setStretchLastSection(True)
@@ -443,6 +455,70 @@ class LogViewer(QWidget):
             self.filterTable.scrollTo(self.filterModel.index(row_count - 1, 0), QTableView.PositionAtTop)
             self.filterTable.selectRow(row_count - 1)
 
+    def init_font_shortcuts(self):
+        """Setup keyboard shortcuts for font size adjustment."""
+        # Increase font size: Ctrl++ or Ctrl+=
+        QShortcut(QKeySequence("Ctrl++"), self).activated.connect(self.increase_font_size)
+        QShortcut(QKeySequence("Ctrl+="), self).activated.connect(self.increase_font_size)
+        
+        # Decrease font size: Ctrl+-
+        QShortcut(QKeySequence("Ctrl+-"), self).activated.connect(self.decrease_font_size)
+        
+        # Reset font size: Ctrl+0
+        QShortcut(QKeySequence("Ctrl+0"), self).activated.connect(self.reset_font_size)
+
+    def increase_font_size(self):
+        """Increase font size by 1pt."""
+        if self.current_font_size < self.max_font_size:
+            self.current_font_size += 1
+            self.update_font_sizes()
+            self.save_font_size()
+
+    def decrease_font_size(self):
+        """Decrease font size by 1pt."""
+        if self.current_font_size > self.min_font_size:
+            self.current_font_size -= 1
+            self.update_font_sizes()
+            self.save_font_size()
+
+    def reset_font_size(self):
+        """Reset font size to default (10pt)."""
+        self.current_font_size = self.default_font_size
+        self.update_font_sizes()
+        self.save_font_size()
+
+    def update_font_sizes(self):
+        """Apply current font size to all widgets."""
+        font = QFont("Courier New", self.current_font_size)
+        
+        # Update tables
+        self.logTable.setFont(font)
+        self.filterTable.setFont(font)
+        
+        # Update search and title
+        self.searchEntry.setFont(font)
+        self.fileTitle.setFont(font)
+        
+        # Update buttons
+        for button in self.levelButtons.values():
+            button.setFont(font)
+        self.cleanLevels.setFont(font)
+        self.reloadButton.setFont(font)
+        self.helpButton.setFont(font)
+        
+        # Update delegate fonts (for proper text rendering)
+        self.logTable.itemDelegate().docText.setDefaultFont(font)
+        self.filterTable.itemDelegate().docText.setDefaultFont(font)
+        
+        # Force viewport repaint
+        self.logTable.viewport().update()
+        self.filterTable.viewport().update()
+
+    def save_font_size(self):
+        """Save font size preference using QSettings."""
+        settings = QSettings("Avice", "TabLog")
+        settings.setValue("font_size", self.current_font_size)
+
     def show_help_dialog(self):
         """Show the help dialog with tabs.
         
@@ -723,10 +799,19 @@ Ctrl+C                 Copy selected rows
 Ctrl+A                 Select all (if < 1000 rows)
 Right-click            Context menu with Copy
 
+🔍 VIEW / ZOOM
+--------------
+Shortcut               Action
+---------------------  -----------------------
+Ctrl++ or Ctrl+=       Increase font size
+Ctrl+-                 Decrease font size
+Ctrl+0                 Reset font to default (10pt)
+
 💡 TIPS
 -------
   • Double-click a log line to view it in a popup
   • Click file paths in logs to open them in a new tab
+  • Font size preference is saved across sessions
   • Use Shift+Click to select multiple rows
   • Right-click selected rows and choose "Copy"
 """

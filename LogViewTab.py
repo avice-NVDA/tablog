@@ -105,6 +105,27 @@ if __name__ == '__main__':
     exit_action.triggered.connect(main_window.close)
     menu.addAction(exit_action)
     
+    # View menu
+    view_menu = main_window.menuBar().addMenu("View")
+    
+    zoom_in_action = QAction('Zoom In', main_window)
+    zoom_in_action.setShortcut('Ctrl++')
+    zoom_in_action.triggered.connect(
+        lambda: log_tabs.currentWidget().increase_font_size() if log_tabs.currentWidget() else None)
+    view_menu.addAction(zoom_in_action)
+    
+    zoom_out_action = QAction('Zoom Out', main_window)
+    zoom_out_action.setShortcut('Ctrl+-')
+    zoom_out_action.triggered.connect(
+        lambda: log_tabs.currentWidget().decrease_font_size() if log_tabs.currentWidget() else None)
+    view_menu.addAction(zoom_out_action)
+    
+    reset_zoom_action = QAction('Reset Zoom', main_window)
+    reset_zoom_action.setShortcut('Ctrl+0')
+    reset_zoom_action.triggered.connect(
+        lambda: log_tabs.currentWidget().reset_font_size() if log_tabs.currentWidget() else None)
+    view_menu.addAction(reset_zoom_action)
+    
     # Help menu
     help_menu = main_window.menuBar().addMenu("Help")
     help_action = QAction('Show Help', main_window)
