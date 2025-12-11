@@ -534,6 +534,33 @@ class LogViewer(QWidget):
         settings = QSettings("Avice", "TabLog")
         settings.setValue("font_size", self.current_font_size)
 
+    def wheelEvent(self, event):
+        """Handle mouse wheel events for font size adjustment.
+        
+        When Ctrl is held down, mouse wheel adjusts font size:
+        - Wheel up (away from user) → Increase font size
+        - Wheel down (toward user) → Decrease font size
+        
+        Without Ctrl, normal scrolling behavior is preserved.
+        """
+        # Check if Ctrl key is held down
+        if event.modifiers() & Qt.ControlModifier:
+            # Get wheel delta (positive = scroll up/away, negative = scroll down/toward)
+            delta = event.angleDelta().y()
+            
+            if delta > 0:
+                # Wheel up → Increase font size
+                self.increase_font_size()
+            elif delta < 0:
+                # Wheel down → Decrease font size
+                self.decrease_font_size()
+            
+            # Accept the event to prevent default scrolling
+            event.accept()
+        else:
+            # No Ctrl key, use default behavior (scroll)
+            super().wheelEvent(event)
+
     def show_help_dialog(self):
         """Show the help dialog with tabs.
         
@@ -821,12 +848,14 @@ Shortcut               Action
 Ctrl++ or Ctrl+=       Increase font size
 Ctrl+-                 Decrease font size
 Ctrl+0                 Reset font to default (10pt)
+Ctrl+Mouse Wheel       Zoom in/out (wheel up/down)
 
 💡 TIPS
 -------
   • Double-click a log line to view it in a popup
   • Click file paths in logs to open them in a new tab
   • Font size preference is saved across sessions
+  • Ctrl+Mouse Wheel works anywhere in the window
   • Use Shift+Click to select multiple rows
   • Right-click selected rows and choose "Copy"
 """
